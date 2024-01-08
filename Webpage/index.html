@@ -1,0 +1,75 @@
+<head>
+
+    <script>
+
+        var inputObjects = [
+            { id:"interface-ip", input_type:"ip",  label:"Interface IP", error_message:"Not a valid IP!"},
+            { id:"interface-port", input_type:"port",  label:"Interface Port", error_message:"Not a valid port number!"},
+        ];
+
+        function populateInputObjects() {
+            inputObjects.forEach(obj => {
+                
+            
+                
+                console.log(obj)
+
+                // Add a span object and populate
+                var inputObject = document.createElement("div");
+
+                // Extra objects
+                var inputObjectLabel = document.createElement("label");
+                var inputObjectInput = document.createElement("input");
+                var inputObjectError = document.createElement("span");
+
+                inputObjectLabel.innerHTML = obj.label;
+                inputObjectInput.type = obj.input_type;
+                inputObjectInput.id = obj.id
+                inputObjectError.innerHTML = obj.error_message;
+
+                // Add objects
+                inputObject.appendChild(inputObjectLabel);
+                inputObject.appendChild(inputObjectInput);
+                inputObject.appendChild(inputObjectError);
+
+                document.body.appendChild(inputObject);
+                document.body.appendChild(document.createElement("br"));
+
+            });
+
+
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            populateInputObjects();
+        });
+
+
+    </script>
+
+    <style>
+        * {
+            font-family: 'Courier New', Courier, monospace;
+        }
+        #ws-connection-status {
+            background-color: red;
+            border: red 5px solid;
+            border-radius: 5px;
+        }
+        .input {
+            background-color: rgb(224, 224, 224);
+            border: rgb(224, 224, 224) 5px solid;
+            border-radius: 5px;
+        }
+    </style>
+
+</head>
+<body>
+
+    <span id="ws-connection-status">Not Connected!</span>
+    <span id="ws-connection-status" style="background-color: greenyellow; border-color: greenyellow;">Connected!</span>
+    <br>
+    <br>
+    
+
+</body>
