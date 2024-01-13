@@ -32,11 +32,36 @@ void setup() {
 
   }
 
-  info("Starting ethernet...");
+  info("Starting Buttons...");
+  startButtons(buttonCallback);
+
+  byte dhcpFlag[1];
+  Settings.read(dhcpFlag, Var_DHCPToggle_Size, Var_DHCPToggle);
 
   byte ip[4];
-  Settings.read(ip, Var_InterfaceIP_Size, Var_InterfaceIP);  
-  Network.startEthernet(ip);
+
+  if(*dhcpFlag) {
+    info("Starting ethernet with DHCP...");
+
+    // Start with DHCP
+    Network.startEthernet();
+    // Reset dhcp flag
+    dhcpFlag[0] = 0;
+    Settings.write(dhcpFlag, Var_DHCPToggle_Size, Var_DHCPToggle);
+    // Write the new ip to settings
+    ip[0] = Network.ip[0];
+    ip[1] = Network.ip[1];
+    ip[2] = Network.ip[2];
+    ip[3] = Network.ip[3];
+    Settings.write(ip, Var_InterfaceIP_Size, Var_InterfaceIP);
+
+  } else {
+    info("Starting ethernet with a static IP...");
+
+    Settings.read(ip, Var_InterfaceIP_Size, Var_InterfaceIP);  
+    Network.startEthernet(ip);
+
+  }
 
   info("Starting webserver...");
 
@@ -63,6 +88,7 @@ void setup() {
 
 void loop() {
   resetButton.poll();
+  pollButtons();
   Network.pollWebServer();
   Network.pollWebSocketServer();
 
@@ -93,9 +119,14 @@ void resetInterface() {
 
 
 void buttonCallback(int _pin, bool _state) {
+  info(_pin, ", ", _state);
   if (_pin == ResetPin && _state == true) {
     // Reset the device
     resetInterface();
+
+  } else {
+    std::string message = "[\"gpi\",\"gpi-" + std::to_string(_pin - 28) + "\"," + std::to_string(_state) + "]";
+    Network.sendMessage(Network.webSocketClient, message.c_str());
 
   }
 
@@ -106,7 +137,7 @@ void websocketMessageCallback(WebsocketsClient& _client, WebsocketsMessage _mess
   info("Got a message: ", _message.data());
 
   // Parse to a json
-  DynamicJsonDocument json(1024);
+  JsonDocument json;
   deserializeJson(json, _message.data());
 
   // The header of a given message is allways a string
@@ -123,7 +154,35 @@ void websocketMessageCallback(WebsocketsClient& _client, WebsocketsMessage _mess
     info("Writing to InterfaceWebPort...");
     Settings.write_16bit(json[1], Var_WebServerPort);
 
+  } else if(header == "interface-dhcp") {
+    info("Writing to DHCPToggle: ", json[1].as<bool>());
+    byte value[1];
+
+    if(json[1].as<bool>()) {
+      value[0] = {1};
+    
+    } else {
+      value[0] = {0};
+
+    }
+
+    Settings.write(value, Var_DHCPToggle_Size, Var_DHCPToggle);
+
+  } else if(header == "videohub-ip") {
+    info("Writing to VideoHubIP...");
+    byte ip[4] = {json[1], json[2], json[3], json[4]};
+    Settings.write(ip, Var_VideoHubIP_Size, Var_VideoHubIP);
+
+  } else if(header == "videohub-port") {
+    info("Writing to VideoHubPort...");
+    Settings.write_16bit(json[1], Var_VideoHubPort);
+
+  } else if(header == "reset") {
+    info("Restarting the Interface...");
+    resetTeensy();
+
   }
+
 
   Settings.printSettings();
 

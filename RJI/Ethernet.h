@@ -177,6 +177,10 @@ class Network {
 
 
 public:
+  IPAddress ip;
+  WebsocketsClient* webSocketClient = nullptr;
+
+
   Network() { 
     // Get mac address
     teensyMAC(mac);
@@ -190,6 +194,15 @@ public:
     Ethernet.begin(mac, _ip);
     info("Ethernet has local IP: ", Ethernet.localIP());
     ip = _ip;
+
+  }
+
+
+  // Startup ethernet with DHCP
+  void startEthernet() {
+    Ethernet.begin(mac);
+    info("Ethernet has local IP: ", Ethernet.localIP());
+    ip = Ethernet.localIP();
 
   }
 
@@ -263,6 +276,10 @@ public:
   }
 
 
+  // Small clock to send a message to keep alive the webclient
+  int clock = 0;
+
+
   void pollWebSocketServer() {
     if(webSocketServer->poll()) {
       // First check if there is already a client
@@ -286,8 +303,8 @@ public:
       webSocketClient->poll();
       // Keep up the current connection status to keep client alive,
       // client will look for a LOS and hault entierly.
-      webSocketClient->send("[\"conn-stat\", true]");
-
+      if (clock%100000 == 0) sendMessage(webSocketClient, "[\"conn-stat\", true]");
+      clock ++;
     }
 
   }
@@ -303,12 +320,10 @@ public:
 
 private:
   byte mac[6];
-  IPAddress ip;
 
   EthernetServer* webServer;
   EthernetClient* videoHubRouter;
 
-  WebsocketsClient* webSocketClient = nullptr;
   WebsocketsServer* webSocketServer;
   MessageHandle messageHandle;
 

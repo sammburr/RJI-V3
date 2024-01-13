@@ -2,13 +2,13 @@
 
     <script>
 
-        var socket = new WebSocket("ws://192.168.21.22:80");
+        var socket = new WebSocket("ws://172.16.21.85:80");
         var lastMessageDate;
 
         socket.addEventListener('message', webSocketMessage);
 
         function webSocketMessage(_event){
-            lastMessageDate = new Date();
+            
 
             const json = JSON.parse(_event.data);
 
@@ -21,9 +21,28 @@
                 case "settings":
                     readSettings(json);
                     break;
+		case "gpi":
+		    setGPI(json[1], json[2]);
+		    break;
 
             }
+	    lastMessageDate = new Date();
         }
+
+	function setGPI(id, state) {
+
+	    var button = document.getElementById(id);
+	    if(state) {
+
+		button.style = "background: green";
+
+	    }
+	    else {
+		button.style = "background: rgb(100,100,100)";
+	    }
+
+	}
+
 
         function readSettings(json) {
             json.slice(1).forEach(element => {
@@ -43,7 +62,7 @@
                         break;
                     
                     case "bool":
-                        inputObject.value = element[1];
+                        inputObject.checked = element[1];
                         break;
 
                 }
@@ -82,7 +101,7 @@
         var inputObjects = [
             { id:"interface-ip", input_type:"ip",  label:"Interface IP ", error_message:" Not a valid IP!"},
             { id:"interface-web-port", input_type:"port",  label:"Interface Web Port ", error_message:" Not a valid port number!"},
-            { id:"interface-dhcp", input_type:"bool", label:"Toggle DHCP (Not Functional)", error_message:" ???Thats not good???" },
+            { id:"interface-dhcp", input_type:"bool", label:"Toggle DHCP ", error_message:" ???Thats not good???" },
             { id:"videohub-ip", input_type:"ip", label:"VideoHub IP ", error_message:" Not a valid IP!"},
             { id:"videohub-port", input_type:"port", label:"VideoHub Port ", error_message:" Not a valid port number!"}
         ];
@@ -134,7 +153,17 @@
             button.onclick = function(){submitSettings()};
             document.body.appendChild(button);
 
+	    button = document.createElement("button");
+	    button.innerHTML = "reboot";
+	    button.onclick = function(){sendReset()};
+	    document.body.appendChild(button);
+
         }
+
+	function sendReset() {
+	    socket.send("[\"reset\"]");
+
+	}
 
         function submitSettings() {
 
@@ -232,12 +261,40 @@
             color: rgb(255, 0, 0);
 
         }
+	.grid-cont {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  padding: 10px;
+	}
+
+	.square {
+  background-color: rgb(100, 100, 100);
+  padding: 20px;
+  text-align: center;
+
+	}
     </style>
 
 </head>
 <body>
 
     <span id="ws-connection-status">Not Connected!</span>
+    <br>
+    <br>
+    <div class="grid-cont">
+        <div id="gpi-1" class="square">GPI 1</div>
+        <div id="gpi-2" class="square">GPI 2</div>    
+        <div id="gpi-3" class="square">GPI 3</div>
+        <div id="gpi-4" class="square">GPI 4</div>  
+        <div id="gpi-5" class="square">GPI 5</div>
+        <div id="gpi-6" class="square">GPI 6</div>  
+        <div id="gpi-7" class="square">GPI 7</div>
+        <div id="gpi-8" class="square">GPI 8</div>  
+        <div id="gpi-9" class="square">GPI 9</div>
+        <div id="gpi-10" class="square">GPI 10</div>  
+        <div id="gpi-11" class="square">GPI 11</div>
+        <div id="gpi-12" class="square">GPI 12</div>  
+    </div>
     <br>
     <br>
     

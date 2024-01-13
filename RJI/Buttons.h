@@ -27,7 +27,7 @@ public:
   // @param (ButtonCallback) function to call on button press/release
   Button(int _pin, ButtonCallback _callback) {
     // Set pinmode
-    pinMode(ResetPin, INPUT_PULLUP);
+    pinMode(_pin, INPUT_PULLUP);
     pin = _pin;
     callback = _callback;
     
@@ -36,7 +36,7 @@ public:
 
   // Poll this button, calls the button callback
   void poll() {
-    bool state = digitalReadFast(pin);
+    bool state = digitalRead(pin);
     // Flip state as this is a INPUT_PULLUP
     state = !state;
 
@@ -50,5 +50,34 @@ public:
 
 };
 
+
+// GPIS start pin
+#define GPI_First_Pin 29
+
+
+// Array of Buttons 
+Button* GPIs[12];
+
+
+// Helper function to init all buttons
+void startButtons(ButtonCallback _callback) {
+  info("Populating button array...");
+
+  for(byte i=0; i<12; i++) {
+    GPIs[i] = new Button(GPI_First_Pin + i, _callback);
+
+  }
+
+}
+
+
+// Helper function to poll all buttons
+void pollButtons() {
+  for(byte i=0; i<12; i++) {
+    GPIs[i]->poll();
+
+  }
+
+}
 
 #endif

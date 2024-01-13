@@ -23,6 +23,7 @@
 #define Var_WebSocketPort_Size 2
 #define Var_VideoHubIP_Size 4
 #define Var_VideoHubPort_Size 2
+#define Var_DHCPToggle_Size 1
 
 
 // The offset (starting byte in EEPROM memory) of each var
@@ -32,17 +33,20 @@
 #define Var_WebSocketPort Var_ResetInterface + Var_ResetInterface_Size
 #define Var_VideoHubIP Var_WebSocketPort + Var_WebServerPort_Size
 #define Var_VideoHubPort Var_VideoHubIP + Var_InterfaceIP_Size
+#define Var_DHCPToggle Var_VideoHubPort + Var_VideoHubPort_Size
+
 
 class Settings {
 
 
 // Default values for settings
-byte interface_ip[Var_InterfaceIP_Size] =     {192, 168, 21, 21}; //TODO make this a DHCP system
-byte videohub_ip[Var_VideoHubIP_Size] =       {192, 168, 21, 100}; //TODO make this something sensible
+byte interface_ip[Var_InterfaceIP_Size] =     {0, 0, 0, 0};
+byte videohub_ip[Var_VideoHubIP_Size] =       {172, 16, 21, 55}; //TODO make this something sensible
 uint16_t webserver_port =                     8080;
 uint16_t websocket_port =                     80;
 uint16_t videohub_port =                      9990;
 byte reset_flag[Var_ResetInterface_Size] =    {0};
+byte dhcp_toggle[Var_DHCPToggle_Size] =       {1};
 
 
 public:
@@ -117,6 +121,7 @@ public:
     write_16bit(websocket_port, Var_WebSocketPort);
     write(videohub_ip, Var_VideoHubIP_Size, Var_VideoHubIP);
     write_16bit(videohub_port, Var_VideoHubPort);
+    write(dhcp_toggle, Var_DHCPToggle_Size, Var_DHCPToggle);
 
   }
 
@@ -136,15 +141,18 @@ public:
     read(videoHubIP, Var_VideoHubIP_Size, Var_VideoHubIP);
     uint16_t videoHubPort;
     read_16bit(videoHubPort, Var_VideoHubPort);
+    byte dhcpToggle[Var_DHCPToggle_Size];
+    read(dhcpToggle, Var_DHCPToggle_Size, Var_DHCPToggle);
 
     Debug.printSubTitle("SETTINGS START");
     
     info("IP: ", ip[0], ".", ip[1], ".", ip[2], ".", ip[3]);
     info("WebServerPort: ", webServerPort);
     info("WebSocketPort: ", webSocketPort);
-    info("ResetFlag: ", *resetFlag);
+    info("Reset Flag: ", *resetFlag);
     info("VideoHub IP: ", videoHubIP[0], ".", videoHubIP[1], ".", videoHubIP[2], ".", videoHubIP[3]);
     info("VideoHub Port: ", videoHubPort);
+    info("DHCP Flag: ", *dhcpToggle);
 
     Debug.printSubTitle("SETTINGS END");
 
@@ -169,6 +177,15 @@ public:
     uint16_t webSocketPort;
     read_16bit(webSocketPort, Var_WebSocketPort);
 
+    byte videoHubIP[Var_VideoHubIP_Size];
+    read(videoHubIP, Var_VideoHubIP_Size, Var_VideoHubIP);
+    uint16_t videoHubPort;
+    read_16bit(videoHubPort, Var_VideoHubPort);
+
+    byte dhcpToggle[Var_DHCPToggle_Size];
+    read(dhcpToggle, Var_DHCPToggle_Size, Var_DHCPToggle);
+
+
     // IP
     doc[1][0] = "interface-ip"; // This needs to be the same `id` as the inputObject in the webpage!!
     doc[1][1] = ip[0];
@@ -176,11 +193,32 @@ public:
     doc[1][3] = ip[2];
     doc[1][4] = ip[3];
 
+
     // Web Server Port
     doc[2][0] = "interface-web-port"; // This needs to be the same `id` as the inputObject in the webpage!!
     doc[2][1] = webServerPort;
 
+
+    // DHCP Toggle
+    doc[3][0] = "interface-dhcp";
+    doc[3][1] = *dhcpToggle;
+
+
+    // Video Hub IP
+    doc[4][0] = "videohub-ip";
+    doc[4][1] = videoHubIP[0];
+    doc[4][2] = videoHubIP[1];
+    doc[4][3] = videoHubIP[2];
+    doc[4][4] = videoHubIP[3];
+
+
+    // Video Hub Port
+    doc[5][0] = "videohub-port";
+    doc[5][1] = videoHubPort;
+
+
     return doc;
+
   }
   
 
