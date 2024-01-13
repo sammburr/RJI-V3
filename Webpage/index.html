@@ -2,9 +2,89 @@
 
     <script>
 
+        var socket = new WebSocket("ws://192.168.21.22:80");
+        var lastMessageDate;
+
+        socket.addEventListener('message', webSocketMessage);
+
+        function webSocketMessage(_event){
+            lastMessageDate = new Date();
+
+            const json = JSON.parse(_event.data);
+
+            switch(json[0]) {
+
+                case "conn-stat":
+                    setConnectionStatus(json[1]);
+                    break;
+                
+                case "settings":
+                    readSettings(json);
+                    break;
+
+            }
+        }
+
+        function readSettings(json) {
+            json.slice(1).forEach(element => {
+                // Get the input object
+                var inputObject = document.getElementById(element[0]);
+                // Here I am assuming there is only one class
+                var inputType = inputObject.classList[0];
+                
+                switch (inputType) {
+
+                    case "ip":
+                        inputObject.value = element[1] + "." + element[2] + "." + element[3] + "." + element[4]; 
+                        break;
+
+                    case "port":
+                        inputObject.value = element[1];
+                        break;
+                    
+                    case "bool":
+                        inputObject.value = element[1];
+                        break;
+
+                }
+
+            });
+
+        }
+
+        function checkConnection() {
+
+            const currDate = new Date();
+            if(currDate - lastMessageDate > 2000) {
+                socket.close();
+                setConnectionStatus(false);
+
+            }
+
+        }
+        setInterval(checkConnection, 2000);
+
+        function setConnectionStatus(_val) {
+            const element = document.getElementById("ws-connection-status");
+
+            if(_val) {
+                element.innerHTML = "Connected!";
+                element.style = "background-color: greenyellow; border-color: greenyellow;";
+
+            }
+            else {
+                element.innerHTML = "Not Connected!";
+                element.style = "";
+
+            }        
+        }
+
         var inputObjects = [
-            { id:"interface-ip", input_type:"ip",  label:"Interface IP", error_message:"Not a valid IP!"},
-            { id:"interface-port", input_type:"port",  label:"Interface Port", error_message:"Not a valid port number!"},
+            { id:"interface-ip", input_type:"ip",  label:"Interface IP ", error_message:" Not a valid IP!"},
+            { id:"interface-web-port", input_type:"port",  label:"Interface Web Port ", error_message:" Not a valid port number!"},
+            { id:"interface-dhcp", input_type:"bool", label:"Toggle DHCP (Not Functional)", error_message:" ???Thats not good???" },
+            { id:"videohub-ip", input_type:"ip", label:"VideoHub IP ", error_message:" Not a valid IP!"},
+            { id:"videohub-port", input_type:"port", label:"VideoHub Port ", error_message:" Not a valid port number!"}
         ];
 
         function populateInputObjects() {
@@ -19,13 +99,25 @@
 
                 // Extra objects
                 var inputObjectLabel = document.createElement("label");
+
+                // Input type
                 var inputObjectInput = document.createElement("input");
-                var inputObjectError = document.createElement("span");
+                
+                switch (obj.input_type) {
+
+                    case "bool":
+                        inputObjectInput.type = "checkbox";
+                        break;
+
+                }
+                
+                var inputObjectError = document.createElement("error");
 
                 inputObjectLabel.innerHTML = obj.label;
-                inputObjectInput.type = obj.input_type;
+                inputObjectInput.classList.add(obj.input_type);
                 inputObjectInput.id = obj.id
-                inputObjectError.innerHTML = obj.error_message;
+                inputObjectError.id = obj.id + "-error";
+                //inputObjectError.innerHTML = obj.error_message;
 
                 // Add objects
                 inputObject.appendChild(inputObjectLabel);
@@ -37,8 +129,83 @@
 
             });
 
+            var button = document.createElement("button");
+            button.innerHTML = "submit";
+            button.onclick = function(){submitSettings()};
+            document.body.appendChild(button);
 
         }
+
+        function submitSettings() {
+
+            // Loop through the list of input objects, check the input type,
+            // check the validity of this input object
+
+            inputObjects.forEach(obj => {
+                
+                var falsifiable = false;
+                var message = "";
+
+                // Get input object
+                var inputObj = document.getElementById(obj.id);
+
+                // Check validity
+                switch(obj.input_type) {
+
+                    case "ip":
+                        falsifiable = !isIPValid(inputObj.value);
+                        var splitIp = inputObj.value.split(".");
+                        message = "[\"" + obj.id + "\"," + 
+                        splitIp[0] + "," +
+                        splitIp[1] + "," +
+                        splitIp[2] + "," +
+                        splitIp[3] + "]";
+                        break;
+
+                    case "port":
+                        falsifiable = !isPortValid(inputObj.value);
+                        message = "[\"" + obj.id + "\"," + inputObj.value + "]"
+                        break;
+
+                    case "bool":
+                        message = "[\"" + obj.id + "\"," + inputObj.checked + "]"
+                        break;
+
+                }
+
+                var error = document.getElementById(obj.id + "-error");
+
+                if(falsifiable) {
+                    // Get error
+                    error.innerHTML = obj.error_message; 
+                    error.style = "color:red";
+
+                }
+                else {
+                    if(message != "") {
+                        socket.send(message);
+                        error.innerHTML = " Sent!";
+                        error.style = "color:green";
+                    }
+
+                }
+
+            });
+
+        }
+
+        function isIPValid(ip) {
+            console.log(ip);
+            // Regular expression to match a valid IPv4 address
+            const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+
+            return ipRegex.test(ip);
+        }
+
+        function isPortValid(port) {
+            // Check if the port is a non-empty string and is a valid positive integer
+            return /^\d+$/.test(port) && parseInt(port, 10) >= 0 && parseInt(port, 10) <= 65535;
+        }     
 
         document.addEventListener('DOMContentLoaded', function() {
             populateInputObjects();
@@ -61,13 +228,16 @@
             border: rgb(224, 224, 224) 5px solid;
             border-radius: 5px;
         }
+        error {
+            color: rgb(255, 0, 0);
+
+        }
     </style>
 
 </head>
 <body>
 
     <span id="ws-connection-status">Not Connected!</span>
-    <span id="ws-connection-status" style="background-color: greenyellow; border-color: greenyellow;">Connected!</span>
     <br>
     <br>
     

@@ -1,4 +1,5 @@
 #include <ArduinoJson.h>
+#include <string.h>
 
 
 #include "Settings.h"
@@ -12,7 +13,6 @@ void (*resetTeensy) (void) = 0; // A function defined at memory location zero ca
 void buttonCallback(int, bool);
 
 
-Settings settings;
 Button resetButton(ResetPin, buttonCallback);
 
 
@@ -22,12 +22,12 @@ void setup() {
 
   Debug.printTitle("TEENSY SETUP");
 
-  settings.printSettings();
+  Settings.printSettings();
 
   byte resetFlag[1];
-  settings.read(resetFlag, Var_ResetInterface_Size, Var_ResetInterface);
+  Settings.read(resetFlag, Var_ResetInterface_Size, Var_ResetInterface);
   if(*resetFlag) {
-    // Write default values to settings
+    // Write default values to Settings
     writeDefaults();
 
   }
@@ -35,20 +35,25 @@ void setup() {
   info("Starting ethernet...");
 
   byte ip[4];
-  settings.read(ip, Var_InterfaceIP_Size, Var_InterfaceIP);  
+  Settings.read(ip, Var_InterfaceIP_Size, Var_InterfaceIP);  
   Network.startEthernet(ip);
 
   info("Starting webserver...");
 
   uint16_t port;
-  settings.read_16bit(port, Var_WebServerPort);
+  Settings.read_16bit(port, Var_WebServerPort);
   Network.startWebServer(port);
 
   info("Starting WebSocket server...");
 
-  settings.read_16bit(port, Var_WebSocketPort);
+  Settings.read_16bit(port, Var_WebSocketPort);
   Network.startWebSocketServer(port, websocketMessageCallback);
 
+  info("Connecting to VideoHub...");
+
+  Settings.read(ip, Var_VideoHubIP_Size, Var_VideoHubIP);
+  Settings.read_16bit(port, Var_VideoHubPort);
+  Network.connectToVideoHub(ip, port);
 
   DebugLight.green();
   Debug.printTitle("TEENSY SETUP DONE");
@@ -64,11 +69,11 @@ void loop() {
 }
 
 
-// Write default values to settings
+// Write default values to Settings
 void writeDefaults() {
-  info("Writing default settings...");
-  settings.writeDefaults();
-  settings.printSettings();
+  info("Writing default Settings...");
+  Settings.writeDefaults();
+  Settings.printSettings();
 
 }
 
@@ -80,7 +85,7 @@ void resetInterface() {
   DebugLight.amber();
   // Write the reset flag setting
   byte flag[] = {1};
-  settings.write(flag, Var_ResetInterface_Size, Var_ResetInterface);
+  Settings.write(flag, Var_ResetInterface_Size, Var_ResetInterface);
   info("Waiting for teensy to restart...");
   resetTeensy();
 
@@ -103,5 +108,23 @@ void websocketMessageCallback(WebsocketsClient& _client, WebsocketsMessage _mess
   // Parse to a json
   DynamicJsonDocument json(1024);
   deserializeJson(json, _message.data());
+
+  // The header of a given message is allways a string
+  std::string header = json[0];
+
+  // Prepare for a large if statment, a condition for each setting in the interface
+  // There is a better way of doing this I hope
+  if(header == "interface-ip") {
+    info("Writing to InterfaceIP...");
+    byte ip[4] = {json[1], json[2], json[3], json[4]};
+    Settings.write(ip, Var_InterfaceIP_Size, Var_InterfaceIP);
+
+  } else if(header == "interface-web-port") {
+    info("Writing to InterfaceWebPort...");
+    Settings.write_16bit(json[1], Var_WebServerPort);
+
+  }
+
+  Settings.printSettings();
 
 }

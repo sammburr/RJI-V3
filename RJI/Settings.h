@@ -3,6 +3,7 @@
 
 
 #include <EEPROM.h>
+#include <ArduinoJson.h>
 
 
 #include "Debug.h"
@@ -20,6 +21,8 @@
 #define Var_WebServerPort_Size 2
 #define Var_ResetInterface_Size 1
 #define Var_WebSocketPort_Size 2
+#define Var_VideoHubIP_Size 4
+#define Var_VideoHubPort_Size 2
 
 
 // The offset (starting byte in EEPROM memory) of each var
@@ -27,15 +30,18 @@
 #define Var_WebServerPort Var_InterfaceIP + Var_InterfaceIP_Size
 #define Var_ResetInterface Var_WebServerPort + Var_WebServerPort_Size
 #define Var_WebSocketPort Var_ResetInterface + Var_ResetInterface_Size
-
+#define Var_VideoHubIP Var_WebSocketPort + Var_WebServerPort_Size
+#define Var_VideoHubPort Var_VideoHubIP + Var_InterfaceIP_Size
 
 class Settings {
 
 
 // Default values for settings
-byte interface_ip[Var_InterfaceIP_Size] =     {172, 20, 149, 21}; //TODO make this a DHCP system
+byte interface_ip[Var_InterfaceIP_Size] =     {192, 168, 21, 21}; //TODO make this a DHCP system
+byte videohub_ip[Var_VideoHubIP_Size] =       {192, 168, 21, 100}; //TODO make this something sensible
 uint16_t webserver_port =                     8080;
 uint16_t websocket_port =                     80;
+uint16_t videohub_port =                      9990;
 byte reset_flag[Var_ResetInterface_Size] =    {0};
 
 
@@ -109,6 +115,8 @@ public:
     write_16bit(webserver_port, Var_WebServerPort);
     write(reset_flag, Var_ResetInterface_Size, Var_ResetInterface);
     write_16bit(websocket_port, Var_WebSocketPort);
+    write(videohub_ip, Var_VideoHubIP_Size, Var_VideoHubIP);
+    write_16bit(videohub_port, Var_VideoHubPort);
 
   }
 
@@ -124,21 +132,62 @@ public:
     read(resetFlag, Var_ResetInterface_Size, Var_ResetInterface);
     uint16_t webSocketPort;
     read_16bit(webSocketPort, Var_WebSocketPort);
+    byte videoHubIP[Var_VideoHubIP_Size];
+    read(videoHubIP, Var_VideoHubIP_Size, Var_VideoHubIP);
+    uint16_t videoHubPort;
+    read_16bit(videoHubPort, Var_VideoHubPort);
 
     Debug.printSubTitle("SETTINGS START");
+    
     info("IP: ", ip[0], ".", ip[1], ".", ip[2], ".", ip[3]);
     info("WebServerPort: ", webServerPort);
     info("WebSocketPort: ", webSocketPort);
     info("ResetFlag: ", *resetFlag);
+    info("VideoHub IP: ", videoHubIP[0], ".", videoHubIP[1], ".", videoHubIP[2], ".", videoHubIP[3]);
+    info("VideoHub Port: ", videoHubPort);
+
     Debug.printSubTitle("SETTINGS END");
 
 
   }
+
+
+  // Helper functions to get all settings in a JSON format
+  JsonDocument getJson() {
+    JsonDocument doc;
+
+    // Header
+    doc[0] = "settings";
+
+    // Body
+    byte ip[Var_InterfaceIP_Size];
+    read(ip, Var_InterfaceIP_Size, Var_InterfaceIP);
+    uint16_t webServerPort;
+    read_16bit(webServerPort, Var_WebServerPort);
+    byte resetFlag[Var_ResetInterface_Size];
+    read(resetFlag, Var_ResetInterface_Size, Var_ResetInterface);
+    uint16_t webSocketPort;
+    read_16bit(webSocketPort, Var_WebSocketPort);
+
+    // IP
+    doc[1][0] = "interface-ip"; // This needs to be the same `id` as the inputObject in the webpage!!
+    doc[1][1] = ip[0];
+    doc[1][2] = ip[1];
+    doc[1][3] = ip[2];
+    doc[1][4] = ip[3];
+
+    // Web Server Port
+    doc[2][0] = "interface-web-port"; // This needs to be the same `id` as the inputObject in the webpage!!
+    doc[2][1] = webServerPort;
+
+    return doc;
+  }
+  
 
 private:
 
 
 };
 
-
+Settings Settings;
 #endif

@@ -1,3 +1,4 @@
+#include "IPAddress.h"
 #include <stdint.h>
 #ifndef Ethernet_h
 #define Ethernet_h
@@ -26,147 +27,147 @@ typedef void (*MessageHandle)(WebsocketsClient&, WebsocketsMessage);
 
 const char webpageA[] PROGMEM =R"rawLiteral(
 
-<!DOCTYPE HTML>
-<html>
+  <!DOCTYPE HTML>
+  <html>
 
-  <head>
+    <head>
 
-    <style>
-      * {
-        font-family: 'Courier New', Courier, monospace;
-      }
-      #ws-connection-status {
-        background-color: red;
-        border: red 5px solid;
-        border-radius: 5px;
-      }
-      .input {
-        background-color: rgb(224, 224, 224);
-        border: rgb(224, 224, 224) 5px solid;
-        border-radius: 5px;
-      }
-    </style>
-
-
-    <script>
-
-      var socket = new WebSocket("ws://" + window.location.hostname + ":80");
-      var lastMessageDate;
-
-      var inputContent = "<>"
-      var inputObjects = [
-
-        { id: "interface-id" }
-
-      ];
-
-      function webSocketConnected() {
-        console.log("connected to arudino!");
-      }
-
-      function webSocketMessage(_event) {
-        lastMessageDate = new Date();
-
-        const json = JSON.parse(_event.data);
-
-        switch(json[0]) {
-
-          case "conn-stat":
-            setConnectionStatus(json[1]);
-            break;
-
-          case "pong":
-            break;
-
+      <style>
+        * {
+          font-family: 'Courier New', Courier, monospace;
         }
-      }
-
-      function connectCallbacks(_socket) {
-        _socket.addEventListener('open', webSocketConnected);
-        _socket.addEventListener('message', webSocketMessage);
-
-      }
-
-      connectCallbacks(socket);
-
-
-      function setConnectionStatus(_val) {
-        const element = document.getElementById("ws-connection-status");
-
-        if(_val) {
-          element.innerHTML = "Connected!";
-          element.style = "background-color: greenyellow; border-color: greenyellow;";
-
-
+        #ws-connection-status {
+          background-color: red;
+          border: red 5px solid;
+          border-radius: 5px;
         }
-        else {
-          element.innerHTML = "Not Connected!";
-          element.style = "";
-
+        .input {
+          background-color: rgb(224, 224, 224);
+          border: rgb(224, 224, 224) 5px solid;
+          border-radius: 5px;
         }
-        
-      }
+      </style>
 
-      function checkConnection() {
-        const currDate = new Date();
-        if(currDate - lastMessageDate > 2000) {
-          socket.close();
-          setConnectionStatus(false);
+
+      <script>
+
+        var socket = new WebSocket("ws://" + window.location.hostname + ":80");
+        var lastMessageDate;
+
+        var inputContent = "<>"
+        var inputObjects = [
+
+          { id: "interface-id" }
+
+        ];
+
+        function webSocketConnected() {
+          console.log("connected to arudino!");
+        }
+
+        function webSocketMessage(_event) {
+          lastMessageDate = new Date();
+
+          const json = JSON.parse(_event.data);
+
+          switch(json[0]) {
+
+            case "conn-stat":
+              setConnectionStatus(json[1]);
+              break;
+
+            case "pong":
+              break;
+
+          }
+        }
+
+        function connectCallbacks(_socket) {
+          _socket.addEventListener('open', webSocketConnected);
+          _socket.addEventListener('message', webSocketMessage);
 
         }
 
-      }
-      setInterval(checkConnection, 2000);
+        connectCallbacks(socket);
 
-      function isValidIPAddress(ipAddress) {
-        // Regular expression to match a valid IPv4 address
-        const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
 
-        return ipRegex.test(ipAddress);
-      }
+        function setConnectionStatus(_val) {
+          const element = document.getElementById("ws-connection-status");
 
-      function isValidPort(port) {
-        // Check if the port is a non-empty string and is a valid positive integer
-        return /^\d+$/.test(port) && parseInt(port, 10) >= 0 && parseInt(port, 10) <= 65535;
-      }
+          if(_val) {
+            element.innerHTML = "Connected!";
+            element.style = "background-color: greenyellow; border-color: greenyellow;";
 
-      function submit() {
 
-        const interfaceIP = document.getElementById("interface-ip").value;
-        const interfaceIPMessage = document.getElementById("interface-ip-msg");
-        if (isValidIPAddress(interfaceIP)) {
-          console.log("valid!");
-          const interfaceIPParts = interfaceIP.split(".");
-          socket.send("[\"interface-ip\"," + interfaceIPParts[0] + "," +
-            interfaceIPParts[1] + "," +
-            interfaceIPParts[2] + "," +
-            interfaceIPParts[3] + "]");
+          }
+          else {
+            element.innerHTML = "Not Connected!";
+            element.style = "";
 
-          interfaceIPMessage.innerHTML = "";
-        }
-        else {
-          console.log("invalid!");
-          interfaceIPMessage.innerHTML = " Not a valid IP!";
+          }
+          
         }
 
-      }
+        function checkConnection() {
+          const currDate = new Date();
+          if(currDate - lastMessageDate > 2000) {
+            socket.close();
+            setConnectionStatus(false);
 
-    </script>
+          }
 
-  </head>
+        }
+        setInterval(checkConnection, 2000);
 
-  <body>
-    
-    <span id="ws-connection-status">Not connected!</span>
+        function isValidIPAddress(ipAddress) {
+          // Regular expression to match a valid IPv4 address
+          const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
 
-    <br>
-    <br>
+          return ipRegex.test(ipAddress);
+        }
 
-    <span class="input-field"><label>Interface IP: </label><input id="interface-ip"><button onclick="submit()">Submit</button><span class="input-message" id="interface-ip-msg" style="color: red;"></span></span>
+        function isValidPort(port) {
+          // Check if the port is a non-empty string and is a valid positive integer
+          return /^\d+$/.test(port) && parseInt(port, 10) >= 0 && parseInt(port, 10) <= 65535;
+        }
 
-  </body>
+        function submit() {
 
-</html>
+          const interfaceIP = document.getElementById("interface-ip").value;
+          const interfaceIPMessage = document.getElementById("interface-ip-msg");
+          if (isValidIPAddress(interfaceIP)) {
+            console.log("valid!");
+            const interfaceIPParts = interfaceIP.split(".");
+            socket.send("[\"interface-ip\"," + interfaceIPParts[0] + "," +
+              interfaceIPParts[1] + "," +
+              interfaceIPParts[2] + "," +
+              interfaceIPParts[3] + "]");
+
+            interfaceIPMessage.innerHTML = "";
+          }
+          else {
+            console.log("invalid!");
+            interfaceIPMessage.innerHTML = " Not a valid IP!";
+          }
+
+        }
+
+      </script>
+
+    </head>
+
+    <body>
+      
+      <span id="ws-connection-status">Not connected!</span>
+
+      <br>
+      <br>
+
+      <span class="input-field"><label>Interface IP: </label><input id="interface-ip"><button onclick="submit()">Submit</button><span class="input-message" id="interface-ip-msg" style="color: red;"></span></span>
+
+    </body>
+
+  </html>
 
 )rawLiteral";
 
@@ -220,6 +221,20 @@ public:
   }
 
 
+  void connectToVideoHub(IPAddress _ip, uint16_t _port) {
+    videoHubRouter = new EthernetClient();
+    if(videoHubRouter->connect(_ip, _port)) {
+      info("Connected to video hub!");
+
+    }
+    else {
+      err("Could NOT connect to video hub!");
+
+    }
+
+  }
+
+
   // Poll web server for incoming messages
   void pollWebServer() {
     EthernetClient client = webServer->accept();
@@ -259,12 +274,18 @@ public:
       webSocketClient = new WebsocketsClient(webSocketServer->accept());
       webSocketClient->onMessage(messageHandle);
       sendMessage(webSocketClient, "[\"conn-stat\", true]");
+      // Send the current settings to the client
+      char buffer[1024];
+      serializeJson(Settings.getJson(), buffer);
+      sendMessage(webSocketClient, buffer);
 
     }
 
     // Poll the current client
     if(webSocketClient != nullptr && webSocketClient->available()) {
       webSocketClient->poll();
+      // Keep up the current connection status to keep client alive,
+      // client will look for a LOS and hault entierly.
       webSocketClient->send("[\"conn-stat\", true]");
 
     }
@@ -285,6 +306,7 @@ private:
   IPAddress ip;
 
   EthernetServer* webServer;
+  EthernetClient* videoHubRouter;
 
   WebsocketsClient* webSocketClient = nullptr;
   WebsocketsServer* webSocketServer;
