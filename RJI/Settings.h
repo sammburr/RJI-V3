@@ -4,6 +4,7 @@
 
 #include <EEPROM.h>
 #include <ArduinoJson.h>
+#include <string.h>
 
 
 #include "Debug.h"
@@ -24,6 +25,15 @@
 #define Var_VideoHubIP_Size 4
 #define Var_VideoHubPort_Size 2
 #define Var_DHCPToggle_Size 1
+#define Var_NumberEngineers_Size 1
+
+#define Var_Eng_0_Size 14 // byte 1-2: mask, 3: dest, 4: type, 5-14: name (null terminated list of chars)
+#define Var_Eng_1_Size 14 // byte 1-2: mask, 3: dest, 4: type, 5-14: name (null terminated list of chars)
+#define Var_Eng_2_Size 14 // byte 1-2: mask, 3: dest, 4: type, 5-14: name (null terminated list of chars)
+#define Var_Eng_3_Size 14 // byte 1-2: mask, 3: dest, 4: type, 5-14: name (null terminated list of chars)
+#define Var_Eng_4_Size 14 // byte 1-2: mask, 3: dest, 4: type, 5-14: name (null terminated list of chars)
+#define Var_Eng_5_Size 14 // byte 1-2: mask, 3: dest, 4: type, 5-14: name (null terminated list of chars)
+                          // Type:0 == `Toggle`, Type:1 == `Momentary`
 
 
 // The offset (starting byte in EEPROM memory) of each var
@@ -34,6 +44,14 @@
 #define Var_VideoHubIP Var_WebSocketPort + Var_WebServerPort_Size
 #define Var_VideoHubPort Var_VideoHubIP + Var_InterfaceIP_Size
 #define Var_DHCPToggle Var_VideoHubPort + Var_VideoHubPort_Size
+#define Var_NumberEngineers Var_DHCPToggle + Var_DHCPToggle_Size
+
+#define Var_Eng_0 Var_NumberEngineers + Var_NumberEngineers_Size
+#define Var_Eng_1 Var_Eng_0 + Var_Eng_0_Size
+#define Var_Eng_2 Var_Eng_1 + Var_Eng_1_Size
+#define Var_Eng_3 Var_Eng_2 + Var_Eng_2_Size
+#define Var_Eng_4 Var_Eng_3 + Var_Eng_3_Size
+#define Var_Eng_5 Var_Eng_4 + Var_Eng_4_Size
 
 
 class Settings {
@@ -47,6 +65,13 @@ uint16_t websocket_port =                     80;
 uint16_t videohub_port =                      9990;
 byte reset_flag[Var_ResetInterface_Size] =    {0};
 byte dhcp_toggle[Var_DHCPToggle_Size] =       {1};
+
+byte eng_0[Var_Eng_0_Size] =                  {B00000000, B00000011, 0, 0, 'D', 'a', 'v', 'e', '\0', 'x', 'x', 'x', 'x', 'x'};
+byte eng_1[Var_Eng_1_Size] =                  {B00000000, B00001100, 1, 0, 'G', 'a', 'r', 'r', 'y', '\0', 'x', 'x', 'x', 'x'};
+byte eng_2[Var_Eng_2_Size] =                  {B00000000, B00110000, 2, 0, 'D', 'i', 'c', 'k', 'y', '\0', 'x', 'x', 'x', 'x'};
+byte eng_3[Var_Eng_3_Size] =                  {B00000000, B11000000, 3, 1, 'S', 'a', 'm', '\0', 'x', 'x', 'x', 'x', 'x', 'x'};
+byte eng_4[Var_Eng_4_Size] =                  {B00000011, B00000000, 4, 1, 'M', 'o', 'h', 'a', 'm', 'm', 'e', 'd', '\0', 'x'};
+byte eng_5[Var_Eng_5_Size] =                  {B00001100, B00000000, 5, 1, 'A', 'r', 't', 'h', 'u', 'r', '\0', 'x', 'x', 'x'};
 
 
 public:
@@ -123,6 +148,13 @@ public:
     write_16bit(videohub_port, Var_VideoHubPort);
     write(dhcp_toggle, Var_DHCPToggle_Size, Var_DHCPToggle);
 
+    write(eng_0, Var_Eng_0_Size, Var_Eng_0);
+    write(eng_1, Var_Eng_1_Size, Var_Eng_1);
+    write(eng_2, Var_Eng_2_Size, Var_Eng_2);
+    write(eng_3, Var_Eng_3_Size, Var_Eng_3);
+    write(eng_4, Var_Eng_4_Size, Var_Eng_4);
+    write(eng_5, Var_Eng_5_Size, Var_Eng_5);
+
   }
 
 
@@ -153,6 +185,32 @@ public:
     info("VideoHub IP: ", videoHubIP[0], ".", videoHubIP[1], ".", videoHubIP[2], ".", videoHubIP[3]);
     info("VideoHub Port: ", videoHubPort);
     info("DHCP Flag: ", *dhcpToggle);
+
+
+    for(byte i=0; i<6; i++) {
+      uint16_t mask;
+      read_16bit(mask, Var_Eng_0 + ((int)i*14));
+      byte dest[1];
+      read(dest, 1, Var_Eng_0 + 2 + ((int)i*14));
+      byte type[1];
+      read(type, 1, Var_Eng_0 + 3 + ((int)i*14));
+      char name[10];
+      read(name, 10, Var_Eng_0 + 4 + ((int)i*14));
+
+      std::string strName = name;
+      std::string strType;
+
+      if(*type) strType = "Momentary";
+      else strType = "Toggle";
+
+      info("");
+      info("Eng ", i, " mask: ", mask);
+      info("Eng ", i, " dest: ", *dest);
+      info("Eng ", i, " type: ", strType.c_str());
+      info("Eng ", i, " name: ", strName.c_str());
+
+    }
+
 
     Debug.printSubTitle("SETTINGS END");
 
@@ -223,7 +281,6 @@ public:
   
 
 private:
-
 
 };
 

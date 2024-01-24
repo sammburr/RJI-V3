@@ -15,7 +15,7 @@ using namespace websockets;
 
 
 #include "Debug.h"
-
+#include "VideoHub.h"
 
 typedef void (*MessageHandle)(WebsocketsClient&, WebsocketsMessage);
 
@@ -242,6 +242,16 @@ public:
     }
     else {
       err("Could NOT connect to video hub!");
+
+    }
+
+  }
+
+
+  void pollVideoHub() {
+    if(videoHubRouter->available()) {
+      char c = videoHubRouter->read();
+        VideoHub.parse(c);
 
     }
 

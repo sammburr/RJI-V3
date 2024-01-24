@@ -6,6 +6,7 @@
 #include "Debug.h"
 #include "Buttons.h"
 #include "Ethernet.h"
+#include "Logic.h"
 
 
 void (*resetTeensy) (void) = 0; // A function defined at memory location zero causes the arduino to
@@ -17,8 +18,8 @@ Button resetButton(ResetPin, buttonCallback);
 
 
 void setup() {
-  Debug.startSerial();
   DebugLight.red();
+  Debug.startSerial();
 
   Debug.printTitle("TEENSY SETUP");
 
@@ -91,6 +92,7 @@ void loop() {
   pollButtons();
   Network.pollWebServer();
   Network.pollWebSocketServer();
+  Network.pollVideoHub();
 
 }
 
