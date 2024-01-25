@@ -1,0 +1,62 @@
+RJIv3 WebSockets
+
+On connect to websockets (port 80), server will send an array; ["conn-stat", true] around every second, a LOS can be inferred when the array hasn't been recived for a period of time.
+The server will then send a large, mult-dimensional array as layed out:
+
+["settings",
+	["interface-ip", BYTE (ipa), BYTE (ipb), BYTE (ipc), BYTE (ipd)],
+	["interface-web-port", 16-BIT-INT],
+	["interface-dhcp", BOOL],
+	["videohub-ip", BYTE (ipa), BYTE (ipb), BYTE (ipc), BYTE (ipd)],
+	["videohub-port", 16-BIT-INT],
+
+	["engineers", 
+		[16-BIT-INT (mask), 16-BIT-INT (dest), BOOL (type), STRING-9 (name)], 
+		[16-BIT-INT (mask), 16-BIT-INT (dest), BOOL (type), STRING-9 (name)], 
+		[16-BIT-INT (mask), 16-BIT-INT (dest), BOOL (type), STRING-9 (name)], 
+		[16-BIT-INT (mask), 16-BIT-INT (dest), BOOL (type), STRING-9 (name)], 
+		[16-BIT-INT (mask), 16-BIT-INT (dest), BOOL (type), STRING-9 (name)], 
+		[16-BIT-INT (mask), 16-BIT-INT (dest), BOOL (type), STRING-9 (name)], 
+	],
+
+	["buttons", 
+		16-BIT-INT (source),
+		16-BIT-INT (source),
+		16-BIT-INT (source),
+		16-BIT-INT (source),
+		16-BIT-INT (source),
+		16-BIT-INT (source),
+		16-BIT-INT (source),
+		16-BIT-INT (source),
+		16-BIT-INT (source),
+		16-BIT-INT (source),
+		16-BIT-INT (source),
+		16-BIT-INT (source),
+	]
+]
+
+On a new web client connceting to the interface, the server will close the WebSocket port and send an array; ["conn-stat", false]
+
+
+
+Settings to send, (the interface will NOT validate inputs):
+!Each is a seperate message to send!
+
+	["interface-ip", BYTE (ipa), BYTE (ipb), BYTE (ipc), BYTE (ipd)]
+
+	["interface-web-port", 16-BIT-INT]
+	
+	["interface-dhcp", BOOL]
+
+	["videohub-ip", BYTE (ipa), BYTE (ipb), BYTE (ipc), BYTE (ipd)]
+
+	["videohub-port", 16-BIT-INT]
+
+For engineers eng_0 -> eng_5:
+
+	["eng_0", 16-BIT-INT (mask), 16-BIT-INT (dest), BOOL (type), STRING-9 (name)]
+
+	For buttons button_0 -> button_11:
+
+	["button_0", 16-BIT-INT (source)]
+

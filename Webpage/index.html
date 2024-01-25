@@ -43,9 +43,59 @@
 
 	}
 
+    function populateEngineers(engineers) {
+
+        const table = document.getElementById("engineers");
+        const rows = table.getElementsByTagName("tr");
+
+        for(let i=0; i<6; i++) {
+
+
+            const mask = document.getElementById(rows[i+1].id + "_mask");
+            const dest = document.getElementById(rows[i+1].id + "_dest");
+            const type = document.getElementById(rows[i+1].id + "_type");
+            const name = document.getElementById(rows[i+1].id + "_name");
+
+            mask.value = parseInt(engineers[i+1][0]).toString(2);
+            dest.value = engineers[i+1][1];
+            type.checked = engineers[i+1][2];
+            name.value = engineers[i+1][3];
+
+        }
+
+    }
+
+    function populateButtons(buttons) {
+
+        console.log(buttons);
+
+        const table = document.getElementById("buttons");
+        const rows = table.getElementsByTagName("tr");
+
+        for(let i=0; i<12; i++) {
+
+            const source = document.getElementById(rows[i+1].id + "_source");
+            source.value = buttons[i+1];
+
+        }   
+
+    }
 
         function readSettings(json) {
             json.slice(1).forEach(element => {
+
+                // Special case for "engineers"
+                if(element[0] == "engineers") {
+                    populateEngineers(element);
+                    return;
+                }
+
+                // Special case for "buttons"
+                if(element[0] == "buttons") {
+                    populateButtons(element);
+                    return;
+                }
+
                 // Get the input object
                 var inputObject = document.getElementById(element[0]);
                 // Here I am assuming there is only one class
@@ -108,8 +158,6 @@
 
         function populateInputObjects() {
             inputObjects.forEach(obj => {
-                
-            
                 
                 console.log(obj)
 
@@ -221,7 +269,96 @@
 
             });
 
+            // Loop through engineers
+            const tableEng = document.getElementById("engineers");
+            const rowsEng = tableEng.getElementsByTagName("tr");
+
+
+            for(let i=0; i<6; i++) {
+
+                message = "[\"eng_" + i + "\",";
+
+                const mask = document.getElementById(rowsEng[i+1].id + "_mask");
+                const dest = document.getElementById(rowsEng[i+1].id + "_dest");
+                const type = document.getElementById(rowsEng[i+1].id + "_type");
+                const name = document.getElementById(rowsEng[i+1].id + "_name");
+                const error = document.getElementById(rowsEng[i+1].id + "-error");
+
+                falsifiable = false;
+                falsifiable = falsifiable || !isValid16Bit(parseInt(mask.value, 2));
+                falsifiable = falsifiable || !isValid16Bit(parseInt(dest.value));
+                falsifiable = falsifiable || !isValidName(name.value);
+
+                message += parseInt(mask.value, 2) + ",";
+                message += parseInt(dest.value) + ",";
+                message += type.checked + ",";
+                message += "\"" + name.value + "\"]";
+
+                if(falsifiable) {
+                    // Get error
+                    error.innerHTML = "Invalid Engineer!"; 
+                    error.style = "color:red";
+
+                }
+                else {
+                    if(message != "") {
+                        socket.send(message);
+                        error.innerHTML = " Sent!";
+                        error.style = "color:green";
+                    }
+
+                }
+
+            }
+
+            // Again for the buttons
+            const tableButt = document.getElementById("buttons");
+            const rowsButt = tableButt.getElementsByTagName("tr");
+
+            for(let i=0; i<12; i++) {
+
+                message = "[\"button_" + i + "\",";
+                const source = document.getElementById(rowsButt[i+1].id + "_source");
+                const error = document.getElementById(rowsButt[i+1].id + "-error");
+
+
+                message += "\"" + source.value + "\"]";
+
+                if(!isPortValid(source.value)) {
+                    // Get error
+                    error.innerHTML = "Invalid Button! (0-256)"; 
+                    error.style = "color:red";
+
+                }
+                else {
+                    if(message != "") {
+                        socket.send(message);
+                        error.innerHTML = " Sent!";
+                        error.style = "color:green";
+                    }
+
+                }
+
+            }
+
         }
+
+        function isValid16Bit(mask) {
+            // Check if the number is an integer
+            if (!Number.isInteger(mask)) {
+                return false;
+            }
+
+            // Check if the number is within the 16-bit range
+            return mask >= -32768 && mask <= 32767;
+        }
+
+        function isValidName(name) {
+            // Regular expression to match only letters, numbers, and underscores
+            const regex = /^[a-zA-Z0-9_]+$/;
+            
+            return regex.test(name);
+            }
 
         function isIPValid(ip) {
             console.log(ip);
@@ -295,6 +432,95 @@
         <div id="gpi-11" class="square">GPI 11</div>
         <div id="gpi-12" class="square">GPI 12</div>  
     </div>
+
+    <table id="engineers">
+
+        <tr>
+            <th>Mask</th><th>Destination</th><th>Enable Cool Logic</th><th>Name</th>
+        </tr>
+
+        <tr id="eng_0">
+            <td><input id="eng_0_mask" class="mask"></td><td><input id="eng_0_dest" class="route"></td><td><input id="eng_0_type" type = "checkbox" class="type"></td><td><input id="eng_0_name" class="name"></td><td><error id="eng_0-error"></error></td>
+        </tr>
+
+        <tr id="eng_1">
+            <td><input id="eng_1_mask" class="mask"></td><td><input id="eng_1_dest" class="route"></td><td><input id="eng_1_type" type = "checkbox" class="type"></td><td><input id="eng_1_name" class="name"></td><td><error id="eng_1-error"></error></td>
+        </tr>
+
+        <tr id="eng_2">
+            <td><input id="eng_2_mask" class="mask"></td><td><input id="eng_2_dest" class="route"></td><td><input id="eng_2_type" type = "checkbox" class="type"></td><td><input id="eng_2_name" class="name"></td><td><error id="eng_2-error"></error></td>
+        </tr>
+
+        <tr id="eng_3">
+            <td><input id="eng_3_mask" class="mask"></td><td><input id="eng_3_dest" class="route"></td><td><input id="eng_3_type" type = "checkbox" class="type"></td><td><input id="eng_3_name" class="name"></td><td><error id="eng_3-error"></error></td>
+        </tr>
+
+        <tr id="eng_4">
+            <td><input id="eng_4_mask" class="mask"></td><td><input id="eng_4_dest" class="route"></td><td><input id="eng_4_type" type = "checkbox" class="type"></td><td><input id="eng_4_name" class="name"></td><td><error id="eng_4-error"></error></td>
+        </tr>
+
+        <tr id="eng_5">
+            <td><input id="eng_5_mask" class="mask"></td><td><input id="eng_5_dest" class="route"></td><td><input id="eng_5_type" type = "checkbox" class="type"></td><td><input id="eng_5_name" class="name"></td><td><error id="eng_5-error"></error></td>
+        </tr>
+
+    </table>
+
+    <table id="buttons">
+
+        <tr>
+            <th>Button</th><th>Source</th>
+        </tr>
+
+        <tr id="button_0">
+            <td>1</td><td><input id="button_0_source"></td><td><error id="button_0-error"></error></td>
+        </tr>
+        
+        <tr id="button_1">
+            <td>2</td><td><input id="button_1_source"></td><td><error id="button_1-error"></error></td>
+        </tr>
+        
+        <tr id="button_2">
+            <td>3</td><td><input id="button_2_source"></td><td><error id="button_2-error"></error></td>
+        </tr>
+        
+        <tr id="button_3">
+            <td>4</td><td><input id="button_3_source"></td><td><error id="button_3-error"></error></td>
+        </tr>
+        
+        <tr id="button_4">
+            <td>5</td><td><input id="button_4_source"></td><td><error id="button_4-error"></error></td>
+        </tr>
+        
+        <tr id="button_5">
+            <td>6</td><td><input id="button_5_source"></td><td><error id="button_5-error"></error></td>
+        </tr>
+        
+        <tr id="button_6">
+            <td>7</td><td><input id="button_6_source"></td><td><error id="button_6-error"></error></td>
+        </tr>
+        
+        <tr id="button_7">
+            <td>8</td><td><input id="button_7_source"></td><td><error id="button_7-error"></error></td>
+        </tr>
+        
+        <tr id="button_8">
+            <td>9</td><td><input id="button_8_source"></td><td><error id="button_8-error"></error></td>
+        </tr>
+        
+        <tr id="button_9">
+            <td>10</td><td><input id="button_9_source"></td><td><error id="button_9-error"></error></td>
+        </tr>
+        
+        <tr id="button_10">
+            <td>11</td><td><input id="button_10_source"></td><td><error id="button_10-error"></error></td>
+        </tr>
+        
+        <tr id="button_11">
+            <td>12</td><td><input id="button_11_source"></td><td><error id="button_11-error"></error></td>
+        </tr>
+
+    </table>
+
     <br>
     <br>
     

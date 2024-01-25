@@ -35,6 +35,18 @@
 #define Var_Eng_5_Size 14 // byte 1-2: mask, 3: dest, 4: type, 5-14: name (null terminated list of chars)
                           // Type:0 == `Toggle`, Type:1 == `Momentary`
 
+#define Var_Button_0_Source_Size  2
+#define Var_Button_1_Source_Size  2
+#define Var_Button_2_Source_Size  2
+#define Var_Button_3_Source_Size  2
+#define Var_Button_4_Source_Size  2
+#define Var_Button_5_Source_Size  2
+#define Var_Button_6_Source_Size  2
+#define Var_Button_7_Source_Size  2
+#define Var_Button_8_Source_Size  2
+#define Var_Button_9_Source_Size  2
+#define Var_Button_10_Source_Size 2
+#define Var_Button_11_Source_Size 2
 
 // The offset (starting byte in EEPROM memory) of each var
 #define Var_InterfaceIP 0
@@ -53,6 +65,18 @@
 #define Var_Eng_4 Var_Eng_3 + Var_Eng_3_Size
 #define Var_Eng_5 Var_Eng_4 + Var_Eng_4_Size
 
+#define Var_Button_0_Source   Var_Eng_5 + Var_Eng_5_Size
+#define Var_Button_1_Source   Var_Button_0_Source + Var_Button_0_Source_Size
+#define Var_Button_2_Source   Var_Button_1_Source + Var_Button_1_Source_Size 
+#define Var_Button_3_Source   Var_Button_2_Source + Var_Button_2_Source_Size 
+#define Var_Button_4_Source   Var_Button_3_Source + Var_Button_3_Source_Size 
+#define Var_Button_5_Source   Var_Button_4_Source + Var_Button_4_Source_Size 
+#define Var_Button_6_Source   Var_Button_5_Source + Var_Button_5_Source_Size 
+#define Var_Button_7_Source   Var_Button_6_Source + Var_Button_6_Source_Size 
+#define Var_Button_8_Source   Var_Button_7_Source + Var_Button_7_Source_Size 
+#define Var_Button_9_Source   Var_Button_8_Source + Var_Button_8_Source_Size 
+#define Var_Button_10_Source  Var_Button_9_Source + Var_Button_9_Source_Size 
+#define Var_Button_11_Source  Var_Button_10_Source + Var_Button_0_Source_Size 
 
 class Settings {
 
@@ -73,6 +97,18 @@ byte eng_3[Var_Eng_3_Size] =                  {B00000000, B11000000, 3, 1, 'S', 
 byte eng_4[Var_Eng_4_Size] =                  {B00000011, B00000000, 4, 1, 'M', 'o', 'h', 'a', 'm', 'm', 'e', 'd', '\0', 'x'};
 byte eng_5[Var_Eng_5_Size] =                  {B00001100, B00000000, 5, 1, 'A', 'r', 't', 'h', 'u', 'r', '\0', 'x', 'x', 'x'};
 
+uint16_t button_0_source =                    0;
+uint16_t button_1_source =                    1;
+uint16_t button_2_source =                    2;
+uint16_t button_3_source =                    3;
+uint16_t button_4_source =                    4;
+uint16_t button_5_source =                    5;
+uint16_t button_6_source =                    6;
+uint16_t button_7_source =                    7;
+uint16_t button_8_source =                    8;
+uint16_t button_9_source =                    9;
+uint16_t button_10_source =                   10;
+uint16_t button_11_source =                   11;
 
 public:
   Settings() {}
@@ -155,6 +191,19 @@ public:
     write(eng_4, Var_Eng_4_Size, Var_Eng_4);
     write(eng_5, Var_Eng_5_Size, Var_Eng_5);
 
+    write_16bit(button_0_source, Var_Button_0_Source);
+    write_16bit(button_1_source, Var_Button_1_Source);
+    write_16bit(button_2_source, Var_Button_2_Source);
+    write_16bit(button_3_source, Var_Button_3_Source);
+    write_16bit(button_4_source, Var_Button_4_Source);
+    write_16bit(button_5_source, Var_Button_5_Source);
+    write_16bit(button_6_source, Var_Button_6_Source);
+    write_16bit(button_7_source, Var_Button_7_Source);
+    write_16bit(button_8_source, Var_Button_8_Source);
+    write_16bit(button_9_source, Var_Button_9_Source);
+    write_16bit(button_10_source, Var_Button_10_Source);
+    write_16bit(button_11_source, Var_Button_11_Source);
+
   }
 
 
@@ -211,6 +260,15 @@ public:
 
     }
 
+    info("");
+
+    for(byte i=0; i<12; i++) {
+      uint16_t source;
+      read_16bit(source, Var_Button_0_Source + ((int)i*2));
+
+      info("Button ", i, " source: ", source);
+
+    }
 
     Debug.printSubTitle("SETTINGS END");
 
@@ -275,10 +333,71 @@ public:
     doc[5][1] = videoHubPort;
 
 
+    // Engineers
+    doc[6][0] = "engineers";
+
+    for(byte i=0; i<6; i++) {
+      uint16_t mask;
+      read_16bit(mask, Var_Eng_0 + ((int)i*14));
+      byte dest[1];
+      read(dest, 1, Var_Eng_0 + 2 + ((int)i*14));
+      byte type[1];
+      read(type, 1, Var_Eng_0 + 3 + ((int)i*14));
+      char name[10];
+      read(name, 10, Var_Eng_0 + 4 + ((int)i*14));
+
+      std::string strName = name;
+
+      doc[6][i+1][0] = mask;
+      doc[6][i+1][1] = *dest;
+      doc[6][i+1][2] = *type;
+      doc[6][i+1][3] = strName;
+
+
+    }
+
+
+    doc[7][0] = "buttons";
+
+    for(byte i=0; i<12; i++) {
+      uint16_t source;
+      read_16bit(source, Var_Button_0_Source + ((int)i*2));
+
+      doc[7][i+1] = source;
+
+    }
+
+
     return doc;
 
   }
   
+
+  void setEngineer(int _indx, JsonDocument _json) {
+    // 1 = mask (16 bit)
+    write_16bit(_json[1].as<uint16_t>(), Var_Eng_0 + (_indx*14));
+
+    // // 2 = dest ( byte )
+    byte dest[1];
+    dest[0] = _json[2].as<byte>();
+
+    write(dest, 1, Var_Eng_0 + (_indx*14) + 2);
+
+    // // 3 = type ( bool )
+    byte type[1];
+    type[0] = {0};
+    if(_json[3].as<bool>()) {
+      type[0] = {1};
+    }
+    write(type, 1, Var_Eng_0 + (_indx*14) + 2 + 1);
+
+    // 4 = name (String)
+    const char* name;
+    name = _json[4].as<const char*>();
+
+    write(name, 10, Var_Eng_0 + (_indx*14) + 2 + 1 + 1);
+
+  }
 
 private:
 

@@ -1,3 +1,5 @@
+#include <string>
+#include <sys/types.h>
 #ifndef VideoHub_h
 #define VideoHub_h
 
@@ -64,11 +66,15 @@ public:
 
   }
 
-private:
+  bool wasLastAck = false;
+
   // List of routing parings
-  // index = source
-  // value = dest
+  // index = dest
+  // value = source
   u_int16_t routingPairs[1024];
+
+private:
+
 
   // Current state
   State currentState = LFHeader;
@@ -89,8 +95,13 @@ private:
     // if the char is a ':', we then want to watch for the end of the header
     else if(_c == ':') {
       currentState = LFEndOfHeader;
+
       return;  
 
+    }
+    // if the char is a new line AND the header so far == "ACK", we have got an ack
+    else if(_c == '\n' && currentHeader == "ACK") {
+      wasLastAck = true;
     }
     // if the char is anything else we got some wrong info, just return
     // and print a message
@@ -142,9 +153,10 @@ private:
     }
     // If we get a spcae, we want to move on to the destination
     else if(_c == ' ') {
-      info(currentSource.c_str());
-      currentState = LFStartOfDest;
-      return;
+      if(!wasLastAck) {
+        currentState = LFStartOfDest;
+        return;
+      }
     }
 
     // Anything else -> return with an error
@@ -177,9 +189,13 @@ private:
     }
     // If we get a spcae, we want to move on to the next pair
     else if(_c == '\n') {
-      info(currentDest.c_str());
-      currentState = EOB;
-      return;
+      if(!wasLastAck) {
+        routingPairs[std::stoi(currentDest)] = static_cast<u_int16_t>(std::stoi(currentSource));
+        info("Setting Routing Pair: ", currentDest.c_str(), " ", routingPairs[std::stoi(currentDest)]);
+
+        currentState = EOB;
+        return;
+      }
     }
 
     // Anything else -> return with an error
@@ -207,6 +223,7 @@ private:
     // Anything else -> return with an error
     resetStates();
     //err("Got an invalid message from VideoHub: Bad Start of Source!");   
+    wasLastAck = false;
 
   }
 

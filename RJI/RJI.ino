@@ -130,6 +130,8 @@ void buttonCallback(int _pin, bool _state) {
     std::string message = "[\"gpi\",\"gpi-" + std::to_string(_pin - 28) + "\"," + std::to_string(_state) + "]";
     Network.sendMessage(Network.webSocketClient, message.c_str());
 
+    Logic.parseButton(_pin, _state);
+
   }
 
 }
@@ -183,9 +185,80 @@ void websocketMessageCallback(WebsocketsClient& _client, WebsocketsMessage _mess
     info("Restarting the Interface...");
     resetTeensy();
 
+  } else if(header == "eng_0") {
+    info("Writing eng_0 (", json[4].as<const char*>(), ") settings...");
+    Settings.setEngineer(0, json);
+
+  } else if(header == "eng_1") {
+    info("Writing eng_1 (", json[4].as<const char*>(), ") settings...");
+    Settings.setEngineer(1, json);
+
+  } else if(header == "eng_2") {
+    info("Writing eng_2 (", json[4].as<const char*>(), ") settings...");
+    Settings.setEngineer(2, json);
+
+  } else if(header == "eng_3") {
+    info("Writing eng_3 (", json[4].as<const char*>(), ") settings...");
+    Settings.setEngineer(3, json);
+
+  } else if(header == "eng_4") {
+    info("Writing eng_4 (", json[4].as<const char*>(), ") settings...");
+    Settings.setEngineer(4, json);
+
+  } else if(header == "eng_5") {
+    info("Writing eng_5 (", json[4].as<const char*>(), ") settings...");
+    Settings.setEngineer(5, json);
+
+  } else if(header == "button_0") {
+    info("Writing button_0 source...");
+    Settings.write_16bit(json[1].as<uint16_t>(), Var_Button_0_Source);
+
+  } else if(header == "button_1") {
+    info("Writing button_1 source...");
+    Settings.write_16bit(json[1].as<uint16_t>(), Var_Button_1_Source);
+
+  } else if(header == "button_2") {
+    info("Writing button_2 source...");
+    Settings.write_16bit(json[1].as<uint16_t>(), Var_Button_2_Source);
+
+  } else if(header == "button_3") {
+    info("Writing button_3 source...");
+    Settings.write_16bit(json[1].as<uint16_t>(), Var_Button_3_Source);
+
+  } else if(header == "button_4") {
+    info("Writing button_4 source...");
+    Settings.write_16bit(json[1].as<uint16_t>(), Var_Button_4_Source);
+
+  } else if(header == "button_5") {
+    info("Writing button_5 source...");
+    Settings.write_16bit(json[1].as<uint16_t>(), Var_Button_5_Source);
+
+  } else if(header == "button_6") {
+    info("Writing button_6 source...");
+    Settings.write_16bit(json[1].as<uint16_t>(), Var_Button_6_Source);
+
+  } else if(header == "button_7") {
+    info("Writing button_7 source...");
+    Settings.write_16bit(json[1].as<uint16_t>(), Var_Button_7_Source);
+
+  } else if(header == "button_8") {
+    info("Writing button_8 source...");
+    Settings.write_16bit(json[1].as<uint16_t>(), Var_Button_8_Source);
+
+  } else if(header == "button_9") {
+    info("Writing button_9 source...");
+    Settings.write_16bit(json[1].as<uint16_t>(), Var_Button_9_Source);
+
+  } else if(header == "button_10") {
+    info("Writing button_10 source...");
+    Settings.write_16bit(json[1].as<uint16_t>(), Var_Button_10_Source);
+
+  } else if(header == "button_11") {
+    info("Writing button_11 source...");
+    Settings.write_16bit(json[1].as<uint16_t>(), Var_Button_11_Source);
+
   }
 
-
-  Settings.printSettings();
+  Settings.printSettings();    
 
 }

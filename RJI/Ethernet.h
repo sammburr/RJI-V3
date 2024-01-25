@@ -252,8 +252,15 @@ public:
     if(videoHubRouter->available()) {
       char c = videoHubRouter->read();
         VideoHub.parse(c);
-
+        //Serial.print(c); <- !!!uncomment for videohub messages!!!
     }
+
+  }
+
+
+  void sendMessageToVideoHub(const char* _message) {
+    info("Sending message to VideoHub: ", _message);
+    videoHubRouter->write(_message);
 
   }
 
@@ -313,7 +320,7 @@ public:
       webSocketClient->poll();
       // Keep up the current connection status to keep client alive,
       // client will look for a LOS and hault entierly.
-      if (clock%100000 == 0) sendMessage(webSocketClient, "[\"conn-stat\", true]");
+      if (clock%100000 == 0) webSocketClient->send("[\"conn-stat\", true]");
       clock ++;
     }
 
