@@ -257,8 +257,6 @@ void websocketMessageCallback(WebsocketsClient& _client, WebsocketsMessage _mess
     info("Writing button_11 source...");
     Settings.write_16bit(json[1].as<uint16_t>(), Var_Button_11_Source);
 
-  }
-
-  Settings.printSettings();    
+  }  
 
 }
