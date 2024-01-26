@@ -96,9 +96,9 @@ public:
           }
 
           std::string msg = "VIDEO OUTPUT ROUTING:\n";
-          msg += std::to_string(source);
-          msg += " ";
           msg += std::to_string(*dest);
+          msg += " ";
+          msg += std::to_string(source);
           msg += "\n\n";
 
           info("Setting engineer: ", name, "(", *dest ,")", " to source: ", source);
