@@ -429,7 +429,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         }
 	.grid-cont {
   display: grid;
-  grid-template-columns: auto auto auto;
+  grid-template-columns: auto auto auto auto;
   padding: 10px;
 	}
 
