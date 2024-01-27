@@ -155,7 +155,8 @@ private:
     else if(_c == ' ') {
       if(!wasLastAck) {
         routingPairs[std::stoi(currentDest)] = static_cast<u_int16_t>(std::stoi(currentSource));
-        info("Setting Routing Pair: ", currentDest.c_str(), " ", routingPairs[std::stoi(currentDest)]);
+        //info("Setting Routing Pair: ", currentDest.c_str(), " ", routingPairs[std::stoi(currentDest)]);
+        info("Setting Routing Pair: ", routingPairs[std::stoi(currentDest)], " ", currentDest.c_str());
 
         currentState = EOB;
         
