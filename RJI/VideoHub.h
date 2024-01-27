@@ -117,7 +117,7 @@ private:
 
       // do some more processing depending on the header we got
       if(currentHeader == "VIDEO OUTPUT ROUTING") {
-        currentState = LFStartOfSource;
+        currentState = LFStartOfDest;
         return;
 
       }
@@ -154,7 +154,11 @@ private:
     // If we get a spcae, we want to move on to the destination
     else if(_c == ' ') {
       if(!wasLastAck) {
-        currentState = LFStartOfDest;
+        routingPairs[std::stoi(currentDest)] = static_cast<u_int16_t>(std::stoi(currentSource));
+        info("Setting Routing Pair: ", currentDest.c_str(), " ", routingPairs[std::stoi(currentDest)]);
+
+        currentState = EOB;
+        
         return;
       }
     }
@@ -190,11 +194,9 @@ private:
     // If we get a spcae, we want to move on to the next pair
     else if(_c == '\n') {
       if(!wasLastAck) {
-        routingPairs[std::stoi(currentDest)] = static_cast<u_int16_t>(std::stoi(currentSource));
-        info("Setting Routing Pair: ", currentDest.c_str(), " ", routingPairs[std::stoi(currentDest)]);
-
-        currentState = EOB;
+        currentState = LFStartOfSource;
         return;
+
       }
     }
 
