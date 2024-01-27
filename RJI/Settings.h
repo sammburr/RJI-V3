@@ -83,19 +83,21 @@ class Settings {
 
 // Default values for settings
 byte interface_ip[Var_InterfaceIP_Size] =     {0, 0, 0, 0};
-byte videohub_ip[Var_VideoHubIP_Size] =       {172, 16, 21, 55}; //TODO make this something sensible
+byte videohub_ip[Var_VideoHubIP_Size] =       {192,168,2,1}; //TODO make this something sensible
+//byte videohub_ip[Var_VideoHubIP_Size] =       {172,16,21,55}; //TODO make this something sensible
+
 uint16_t webserver_port =                     8080;
 uint16_t websocket_port =                     80;
 uint16_t videohub_port =                      9990;
 byte reset_flag[Var_ResetInterface_Size] =    {0};
 byte dhcp_toggle[Var_DHCPToggle_Size] =       {1};
 
-byte eng_0[Var_Eng_0_Size] =                  {B00000000, B00000011, 0, 0, 'D', 'a', 'v', 'e', '\0', 'x', 'x', 'x', 'x', 'x'};
-byte eng_1[Var_Eng_1_Size] =                  {B00000000, B00001100, 1, 0, 'G', 'a', 'r', 'r', 'y', '\0', 'x', 'x', 'x', 'x'};
-byte eng_2[Var_Eng_2_Size] =                  {B00000000, B00110000, 2, 0, 'D', 'i', 'c', 'k', 'y', '\0', 'x', 'x', 'x', 'x'};
-byte eng_3[Var_Eng_3_Size] =                  {B00000000, B11000000, 3, 1, 'S', 'a', 'm', '\0', 'x', 'x', 'x', 'x', 'x', 'x'};
-byte eng_4[Var_Eng_4_Size] =                  {B00000011, B00000000, 4, 1, 'M', 'o', 'h', 'a', 'm', 'm', 'e', 'd', '\0', 'x'};
-byte eng_5[Var_Eng_5_Size] =                  {B00001100, B00000000, 5, 1, 'A', 'r', 't', 'h', 'u', 'r', '\0', 'x', 'x', 'x'};
+byte eng_0[Var_Eng_0_Size] =                  {B00000000, B00001111, 0, 1, 'V', 'i', 's', ' ', '1', '\0', 'x', 'x', 'x', 'x'};
+byte eng_1[Var_Eng_1_Size] =                  {B00000000, B11110000, 1, 1, 'V', 'i', 's', ' ', '2', '\0', 'x', 'x', 'x', 'x'};
+byte eng_2[Var_Eng_2_Size] =                  {B00001111, B00000000, 2, 1, 'V', 'i', 's', ' ', '3', '\0', 'x', 'x', 'x', 'x'};
+byte eng_3[Var_Eng_3_Size] =                  {B00000000, B00000000, 3, 0, 'V', 'i', 's', ' ', '4', '\0', 'x', 'x', 'x', 'x'};
+byte eng_4[Var_Eng_4_Size] =                  {B00000000, B00000000, 4, 0, 'V', 'i', 's', ' ', '5', '\0', 'x', 'x', 'x', 'x'};
+byte eng_5[Var_Eng_5_Size] =                  {B00000000, B00000000, 5, 0, 'V', 'i', 's', ' ', '6', '\0', 'x', 'x', 'x', 'x'};
 
 uint16_t button_0_source =                    0;
 uint16_t button_1_source =                    1;
