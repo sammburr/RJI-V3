@@ -94,6 +94,8 @@ void loop() {
   Network.pollWebSocketServer();
   Network.pollVideoHub();
 
+  Network.clock += 1;
+
 }
 
 

@@ -913,7 +913,6 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 </body>
 
 
-
 )rawLiteral";
 
 
@@ -978,8 +977,13 @@ public:
 
   }
 
+  IPAddress videohub_ip;
+  uint16_t videohub_port;
 
   void connectToVideoHub(IPAddress _ip, uint16_t _port) {
+    videohub_ip = _ip;
+    videohub_port = _port;
+
     videoHubRouter = new EthernetClient();
     if(videoHubRouter->connect(_ip, _port)) {
       info("Connected to video hub!");
@@ -997,7 +1001,21 @@ public:
     if(videoHubRouter->available()) {
       char c = videoHubRouter->read();
         VideoHub.parse(c);
-        //Serial.print(c); <- !!!uncomment for videohub messages!!!
+        //Serial.print(c); // <- !!!uncomment for videohub messages!!!
+
+    }
+    if (clock%500000 == 0) {
+      // Send a ping every second-ish
+
+      // Check if last was a success:
+      if(VideoHub.sentPing) {
+        // attempt to reconnect:
+        info("Attempting to reconnect to VideoHub...");
+        connectToVideoHub(videohub_ip, videohub_port);
+      }
+
+      videoHubRouter->write("PING:\n\n");
+      VideoHub.sentPing = true;
     }
 
   }
@@ -1066,7 +1084,6 @@ public:
       // Keep up the current connection status to keep client alive,
       // client will look for a LOS and hault entierly.
       if (clock%100000 == 0) webSocketClient->send("[\"conn-stat\", true]");
-      clock ++;
     }
 
   }

@@ -67,6 +67,7 @@ public:
   }
 
   bool wasLastAck = false;
+  bool sentPing = false;  // Set to true if we send a ping so we ignore the next ACK
 
   // List of routing parings
   // index = dest
@@ -100,9 +101,16 @@ private:
 
     }
     // if the char is a new line AND the header so far == "ACK", we have got an ack
-    else if(_c == '\n' && currentHeader == "ACK") {
-      wasLastAck = true;
+    // also check if we sent a ping, if we did, reset and set sentPing to false
+    else if(_c == '\n' && currentHeader == "ACK" ) {
+      if(!sentPing)
+        wasLastAck = true;
+      else {
+        sentPing = false;
+        //info("Successful Ping!");
+      }
     }
+
     // if the char is anything else we got some wrong info, just return
     // and print a message
     //err("Got an invalid message from VideoHub: Bad Header!");
@@ -114,6 +122,7 @@ private:
     // If the char is a new line then we have reached the end of
     // the header
     if(_c == '\n') {
+
 
       // do some more processing depending on the header we got
       if(currentHeader == "VIDEO OUTPUT ROUTING") {
