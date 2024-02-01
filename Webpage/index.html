@@ -107,6 +107,7 @@
 
         });
         updateButtonOptions(false);
+        updateSwitchLogic();
 
     }
 
@@ -478,6 +479,42 @@
 
     }
 
+    function updateSwitchLogic() {
+        const eng0 = document.getElementById("eng_0_logic");
+        const eng1 = document.getElementById("eng_1_logic");
+        const eng2 = document.getElementById("eng_2_logic");
+        const eng3 = document.getElementById("eng_3_logic");
+        const eng4 = document.getElementById("eng_4_logic");
+        const eng5 = document.getElementById("eng_5_logic");
+
+        const eng0t = document.getElementById("eng_0_type");
+        const eng1t = document.getElementById("eng_1_type");
+        const eng2t = document.getElementById("eng_2_type");
+        const eng3t = document.getElementById("eng_3_type");
+        const eng4t = document.getElementById("eng_4_type");
+        const eng5t = document.getElementById("eng_5_type");
+
+        if(eng0t.checked) eng0.innerHTML = "Latch";
+        if(eng1t.checked) eng1.innerHTML = "Latch";
+        if(eng2t.checked) eng2.innerHTML = "Latch";
+        if(eng3t.checked) eng3.innerHTML = "Latch";
+        if(eng4t.checked) eng4.innerHTML = "Latch";
+        if(eng5t.checked) eng5.innerHTML = "Latch";
+
+
+    }
+
+    function switchLogic(evt, checkbox) {
+        if(evt.currentTarget.innerHTML == "Toggle") {
+            evt.currentTarget.innerHTML = "Latch";
+            document.getElementById(checkbox).checked = true;
+        }
+        else {
+            document.getElementById(checkbox).checked = false;
+            evt.currentTarget.innerHTML = "Toggle";
+        }
+
+    }
 
     function updateButtonOptions(updateMask) {
 
@@ -701,6 +738,17 @@
         text-align: center;
     }
 
+    td button {
+        padding: 2px 50px;
+
+
+    }
+
+    select {
+        padding: 0px 15px;
+        border: none;
+        border-bottom: 1px solid #ccc;
+    }
 
     </style>
 
@@ -739,31 +787,31 @@
         <table id="engineers">
 
             <tr>
-                <th  style="display:none" >Mask</th><th>Destination</th><th>Enable Cool Logic</th><th>Name</th>
+                <th  style="display:none" >Mask</th><th>Destination</th> <th>Logic</th> <th></th><th>Name</th>
             </tr>
     
             <tr id="eng_0">
-                <td  style="display:none" ><input id="eng_0_mask" class="mask"></td><td><input id="eng_0_dest" class="route"></td><td><input id="eng_0_type" type = "checkbox" class="type"></td><td><input id="eng_0_name" class="name"></td><td><error id="eng_0-error"></error></td>
+                <td  style="display:none" ><input id="eng_0_mask" class="mask"></td><td><input id="eng_0_dest" class="route"></td> <td><button id="eng_0_logic" onclick="switchLogic(event, 'eng_0_type')">Toggle</button></td> <td><input style="display: none;" id="eng_0_type" type = "checkbox" class="type"></td><td><input id="eng_0_name" class="name"></td><td><error id="eng_0-error"></error></td>
             </tr>
     
             <tr id="eng_1">
-                <td  style="display:none" ><input id="eng_1_mask" class="mask"></td><td><input id="eng_1_dest" class="route"></td><td><input id="eng_1_type" type = "checkbox" class="type"></td><td><input id="eng_1_name" class="name"></td><td><error id="eng_1-error"></error></td>
+                <td  style="display:none" ><input id="eng_1_mask" class="mask"></td><td><input id="eng_1_dest" class="route"></td> <td><button id="eng_1_logic"  onclick="switchLogic(event, 'eng_1_type')">Toggle</button></td> <td><input style="display: none;" id="eng_1_type" type = "checkbox" class="type"></td><td><input id="eng_1_name" class="name"></td><td><error id="eng_1-error"></error></td>
             </tr>
     
             <tr id="eng_2">
-                <td  style="display:none" ><input id="eng_2_mask" class="mask"></td><td><input id="eng_2_dest" class="route"></td><td><input id="eng_2_type" type = "checkbox" class="type"></td><td><input id="eng_2_name" class="name"></td><td><error id="eng_2-error"></error></td>
+                <td  style="display:none" ><input id="eng_2_mask" class="mask"></td><td><input id="eng_2_dest" class="route"></td> <td><button id="eng_2_logic"  onclick="switchLogic(event, 'eng_2_type')">Toggle</button></td> <td><input style="display: none;" id="eng_2_type" type = "checkbox" class="type"></td><td><input id="eng_2_name" class="name"></td><td><error id="eng_2-error"></error></td>
             </tr>
     
             <tr id="eng_3">
-                <td  style="display:none" ><input id="eng_3_mask" class="mask"></td><td><input id="eng_3_dest" class="route"></td><td><input id="eng_3_type" type = "checkbox" class="type"></td><td><input id="eng_3_name" class="name"></td><td><error id="eng_3-error"></error></td>
+                <td  style="display:none" ><input id="eng_3_mask" class="mask"></td><td><input id="eng_3_dest" class="route"></td> <td><button id="eng_3_logic"  onclick="switchLogic(event, 'eng_3_type')">Toggle</button></td> <td><input style="display: none;" id="eng_3_type" type = "checkbox" class="type"></td><td><input id="eng_3_name" class="name"></td><td><error id="eng_3-error"></error></td>
             </tr>
     
             <tr id="eng_4">
-                <td  style="display:none" ><input id="eng_4_mask" class="mask"></td><td><input id="eng_4_dest" class="route"></td><td><input id="eng_4_type" type = "checkbox" class="type"></td><td><input id="eng_4_name" class="name"></td><td><error id="eng_4-error"></error></td>
+                <td  style="display:none" ><input id="eng_4_mask" class="mask"></td><td><input id="eng_4_dest" class="route"></td> <td><button id="eng_4_logic"  onclick="switchLogic(event, 'eng_4_type')">Toggle</button></td> <td><input style="display: none;" id="eng_4_type" type = "checkbox" class="type"></td><td><input id="eng_4_name" class="name"></td><td><error id="eng_4-error"></error></td>
             </tr>
     
             <tr id="eng_5">
-                <td  style="display:none" ><input id="eng_5_mask" class="mask"></td><td><input id="eng_5_dest" class="route"></td><td><input id="eng_5_type" type = "checkbox" class="type"></td><td><input id="eng_5_name" class="name"></td><td><error id="eng_5-error"></error></td>
+                <td  style="display:none" ><input id="eng_5_mask" class="mask"></td><td><input id="eng_5_dest" class="route"></td> <td><button id="eng_5_logic"  onclick="switchLogic(event, 'eng_5_type')">Toggle</button></td> <td><input style="display: none;" id="eng_5_type" type = "checkbox" class="type"></td><td><input id="eng_5_name" class="name"></td><td><error id="eng_5-error"></error></td>
             </tr>
     
         </table>
@@ -783,47 +831,47 @@
             </tr>
             
             <tr id="button_1">
-                <td>2</td><td><input id="button_1_source"></td> <td><select id="button_1_eng"></select></td><td> <td><error id="button_1-error"></error></td>
+                <td>2</td><td><input id="button_1_source"></td> <td><select id="button_1_eng"></select></td> <td><error id="button_1-error"></error></td>
             </tr>
             
             <tr id="button_2">
-                <td>3</td><td><input id="button_2_source"></td> <td><select id="button_2_eng"></select></td><td> <td><error id="button_2-error"></error></td>
+                <td>3</td><td><input id="button_2_source"></td> <td><select id="button_2_eng"></select></td> <td><error id="button_2-error"></error></td>
             </tr>
             
             <tr id="button_3">
-                <td>4</td><td><input id="button_3_source"></td> <td><select id="button_3_eng"></select></td><td> <td><error id="button_3-error"></error></td>
+                <td>4</td><td><input id="button_3_source"></td> <td><select id="button_3_eng"></select></td> <td><error id="button_3-error"></error></td>
             </tr>
             
             <tr id="button_4">
-                <td>5</td><td><input id="button_4_source"></td> <td><select id="button_4_eng"></select></td><td> <td><error id="button_4-error"></error></td>
+                <td>5</td><td><input id="button_4_source"></td> <td><select id="button_4_eng"></select></td> <td><error id="button_4-error"></error></td>
             </tr>
             
             <tr id="button_5">
-                <td>6</td><td><input id="button_5_source"></td> <td><select id="button_5_eng"></select></td><td> <td><error id="button_5-error"></error></td>
+                <td>6</td><td><input id="button_5_source"></td> <td><select id="button_5_eng"></select></td> <td><error id="button_5-error"></error></td>
             </tr>
             
             <tr id="button_6">
-                <td>7</td><td><input id="button_6_source"></td> <td><select id="button_6_eng"></select></td><td> <td><error id="button_6-error"></error></td>
+                <td>7</td><td><input id="button_6_source"></td> <td><select id="button_6_eng"></select></td> <td><error id="button_6-error"></error></td>
             </tr>
             
             <tr id="button_7">
-                <td>8</td><td><input id="button_7_source"></td> <td><select id="button_7_eng"></select></td><td> <td><error id="button_7-error"></error></td>
+                <td>8</td><td><input id="button_7_source"></td> <td><select id="button_7_eng"></select></td> <td><error id="button_7-error"></error></td>
             </tr>
             
             <tr id="button_8">
-                <td>9</td><td><input id="button_8_source"></td> <td><select id="button_8_eng"></select></td><td> <td><error id="button_8-error"></error></td>
+                <td>9</td><td><input id="button_8_source"></td> <td><select id="button_8_eng"></select></td> <td><error id="button_8-error"></error></td>
             </tr>
             
             <tr id="button_9">
-                <td>10</td><td><input id="button_9_source"></td> <td><select id="button_9_eng"></select></td><td> <td><error id="button_9-error"></error></td>
+                <td>10</td><td><input id="button_9_source"></td> <td><select id="button_9_eng"></select></td> <td><error id="button_9-error"></error></td>
             </tr>
             
             <tr id="button_10">
-                <td>11</td><td><input id="button_10_source"></td> <td><select id="button_10_eng"></select></td><td> <td><error id="button_10-error"></error></td>
+                <td>11</td><td><input id="button_10_source"></td> <td><select id="button_10_eng"></select></td> <td><error id="button_10-error"></error></td>
             </tr>
             
             <tr id="button_11">
-                <td>12</td><td><input id="button_11_source"></td> <td><select id="button_11_eng"></select></td><td> <td><error id="button_11-error"></error></td>
+                <td>12</td><td><input id="button_11_source"></td> <td><select id="button_11_eng"></select></td> <td><error id="button_11-error"></error></td>
             </tr>
 
         </table> 
