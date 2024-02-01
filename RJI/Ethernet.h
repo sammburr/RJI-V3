@@ -30,7 +30,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
     <script>
 
-    var socket = new WebSocket("ws://172.16.21.85:80"); // This starts up the socket connection automagically.
+    var socket = new WebSocket("ws://" + window.location.hostname + ":80"); // This starts up the socket connection automagically.
     var lastMessageDate;                                // Used to keep track of last message sent to check if we have
                                                         // disconnected from the interface.
 

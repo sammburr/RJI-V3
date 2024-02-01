@@ -42,19 +42,19 @@ public:
         lookForEndOfHeader(_c);
         break;
 
-      case LFStartOfSource:
+      case LFStartOfDest:
         lookForStartOfDest(_c);
         break;
 
-      case LFSource:
+      case LFDest:
         lookForDest(_c);
         break;
 
-      case LFStartOfDest:
+      case LFStartOfSource:
         lookForStartOfSource(_c);
         break;
 
-      case LFDest:
+      case LFSource:
         lookForSource(_c);
         break;
 
