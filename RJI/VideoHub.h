@@ -19,10 +19,10 @@ enum State {
 
   LFHeader,
   LFEndOfHeader,
-  LFStartOfSource,
-  LFSource,
   LFStartOfDest,
   LFDest,
+  LFStartOfSource,
+  LFSource,
   EOB
 
 };
@@ -43,19 +43,19 @@ public:
         break;
 
       case LFStartOfSource:
-        lookForStartOfSource(_c);
-        break;
-
-      case LFSource:
-        lookForSource(_c);
-        break;
-
-      case LFStartOfDest:
         lookForStartOfDest(_c);
         break;
 
-      case LFDest:
+      case LFSource:
         lookForDest(_c);
+        break;
+
+      case LFStartOfDest:
+        lookForStartOfSource(_c);
+        break;
+
+      case LFDest:
+        lookForSource(_c);
         break;
 
       case EOB:
@@ -117,7 +117,7 @@ private:
 
       // do some more processing depending on the header we got
       if(currentHeader == "VIDEO OUTPUT ROUTING") {
-        currentState = LFStartOfSource;
+        currentState = LFStartOfDest;
         return;
 
       }
@@ -129,13 +129,13 @@ private:
 
   }
 
-  void lookForStartOfSource(char _c) {
+  void lookForStartOfDest(char _c) {
     // If the char is a numeric then we can add it to
     // the source string
     if(std::isdigit(_c)) {
       // Add to start of current source
-      currentSource += _c;
-      currentState = LFSource;
+      currentDest += _c;
+      currentState = LFDest;
       return;
 
     }
@@ -145,16 +145,16 @@ private:
 
   }
 
-  void lookForSource(char _c) {
+  void lookForDest(char _c) {
     // If the char is numeric then continue to add to source
     if(std::isdigit(_c)) {
-      currentSource += _c;
+      currentDest += _c;
       return;
     }
     // If we get a spcae, we want to move on to the destination
     else if(_c == ' ') {
       if(!wasLastAck) {
-        currentState = LFStartOfDest;
+        currentState = LFStartOfSource;
         return;
       }
     }
@@ -165,13 +165,13 @@ private:
 
   }
 
-  void lookForStartOfDest(char _c) {
+  void lookForStartOfSource(char _c) {
     // If the char is a numeric then we can add it to
     // the dest string
     if(std::isdigit(_c)) {
       // Add to start of current source
-      currentDest += _c;
-      currentState = LFDest;
+      currentSource += _c;
+      currentState = LFSource;
       return;
 
     }
@@ -181,10 +181,10 @@ private:
 
   }
 
-  void lookForDest(char _c) {
+  void lookForSource(char _c) {
      // If the char is numeric then continue to add to source
     if(std::isdigit(_c)) {
-      currentDest += _c;
+      currentSource += _c;
       return;
     }
     // If we get a spcae, we want to move on to the next pair
@@ -214,8 +214,8 @@ private:
     // If it is a digit, we wanna go back to looking for a source
     else if(std::isdigit(_c)) {
       resetStates();
-      currentState = LFSource;
-      currentSource += _c;
+      currentState = LFDest;
+      currentDest += _c;
 
       return;
 
