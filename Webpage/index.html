@@ -25,6 +25,10 @@
                 setConnectionStatus(json[1]);
                 break;
             
+            case "vh-stat":
+                setVideoHubConnectionStatus(json[1]);
+                break;
+            
             case "settings":
                 readSettings(json);
                 break;
@@ -63,10 +67,25 @@
         else {
             element.innerHTML = "Not Connected!";
             element.style = "";
-
+            setVideoHubConnectionStatus(_val);
         }        
     }
 
+    function setVideoHubConnectionStatus(_val) {
+        const element = document.getElementById("vh-connection-status");
+
+        if(_val) {
+            element.innerHTML = "Connected to VideoHub!";
+            element.style = "background-color: var(--green-accent); border-color: var(--green-accent);";
+
+        }
+        else {
+            element.innerHTML = "Not Connected to VideoHub!";
+            element.style = "";
+
+        }     
+
+    }
 
     function readSettings(json) {
 
@@ -228,11 +247,24 @@
         button.id = "reboot-button";
         document.body.appendChild(button);
 
+        button = document.createElement("button");
+        button.innerHTML = "connect to videohub";
+        button.onclick = function(){sendConnectToVideohub()};
+        button.id = "retry-video-button";
+        document.body.appendChild(button);
+
+
     }
 
+    function sendConnectToVideohub() {
+        socket.send("[\"video_hub_retry\"]");
+        location.reload();
+
+    }
 
 	function sendReset() {
 	    socket.send("[\"reset\"]");
+        location.reload();
 
 	}
 
@@ -632,6 +664,16 @@
 
     }
 
+    #vh-connection-status {
+        display: block;
+        text-align: center;
+        background-color: red;
+        border: red 5px solid;
+        border-radius: 5px;
+        margin-bottom: 10px;
+
+    }
+
 
     .input {
         background-color: rgb(224, 224, 224);
@@ -750,6 +792,11 @@
         border-bottom: 1px solid #ccc;
     }
 
+    #retry-video-button {
+        float: right;
+
+    }
+
     </style>
 
 </head>
@@ -759,6 +806,7 @@
 
 
     <span id="ws-connection-status">Not Connected!</span>
+    <span id="vh-connection-status">Not Connected to VideoHub!</span>
 
     <div class="grid-cont">
         <div id="gpi-1" class="square">GPI 1</div>

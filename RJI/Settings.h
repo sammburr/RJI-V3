@@ -76,14 +76,15 @@
 #define Var_Button_8_Source   Var_Button_7_Source + Var_Button_7_Source_Size 
 #define Var_Button_9_Source   Var_Button_8_Source + Var_Button_8_Source_Size 
 #define Var_Button_10_Source  Var_Button_9_Source + Var_Button_9_Source_Size 
-#define Var_Button_11_Source  Var_Button_10_Source + Var_Button_0_Source_Size 
+#define Var_Button_11_Source  Var_Button_10_Source + Var_Button_10_Source_Size 
+
+
 
 class Settings {
 
-
 // Default values for settings
-byte interface_ip[Var_InterfaceIP_Size] =     {0, 0, 0, 0};
-byte videohub_ip[Var_VideoHubIP_Size] =       {192,168,2,1}; //TODO make this something sensible
+byte interface_ip[Var_InterfaceIP_Size] =     {192,168,10,50};
+byte videohub_ip[Var_VideoHubIP_Size] =       {192,168,10,240}; //TODO make this something sensible
 //byte videohub_ip[Var_VideoHubIP_Size] =       {172,16,21,55}; //TODO make this something sensible
 
 uint16_t webserver_port =                     8080;

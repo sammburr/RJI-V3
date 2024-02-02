@@ -54,6 +54,10 @@ const char webpageA[] PROGMEM =R"rawLiteral(
                 setConnectionStatus(json[1]);
                 break;
             
+            case "vh-stat":
+                setVideoHubConnectionStatus(json[1]);
+                break;
+            
             case "settings":
                 readSettings(json);
                 break;
@@ -92,10 +96,25 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         else {
             element.innerHTML = "Not Connected!";
             element.style = "";
-
+            setVideoHubConnectionStatus(_val);
         }        
     }
 
+    function setVideoHubConnectionStatus(_val) {
+        const element = document.getElementById("vh-connection-status");
+
+        if(_val) {
+            element.innerHTML = "Connected to VideoHub!";
+            element.style = "background-color: var(--green-accent); border-color: var(--green-accent);";
+
+        }
+        else {
+            element.innerHTML = "Not Connected to VideoHub!";
+            element.style = "";
+
+        }     
+
+    }
 
     function readSettings(json) {
 
@@ -257,11 +276,24 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         button.id = "reboot-button";
         document.body.appendChild(button);
 
+        button = document.createElement("button");
+        button.innerHTML = "connect to videohub";
+        button.onclick = function(){sendConnectToVideohub()};
+        button.id = "retry-video-button";
+        document.body.appendChild(button);
+
+
     }
 
+    function sendConnectToVideohub() {
+        socket.send("[\"video_hub_retry\"]");
+        location.reload();
+
+    }
 
 	function sendReset() {
 	    socket.send("[\"reset\"]");
+        location.reload();
 
 	}
 
@@ -661,6 +693,16 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
     }
 
+    #vh-connection-status {
+        display: block;
+        text-align: center;
+        background-color: red;
+        border: red 5px solid;
+        border-radius: 5px;
+        margin-bottom: 10px;
+
+    }
+
 
     .input {
         background-color: rgb(224, 224, 224);
@@ -779,6 +821,11 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         border-bottom: 1px solid #ccc;
     }
 
+    #retry-video-button {
+        float: right;
+
+    }
+
     </style>
 
 </head>
@@ -788,6 +835,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
 
     <span id="ws-connection-status">Not Connected!</span>
+    <span id="vh-connection-status">Not Connected to VideoHub!</span>
 
     <div class="grid-cont">
         <div id="gpi-1" class="square">GPI 1</div>
@@ -912,8 +960,6 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
 
 </body>
-
-
 )rawLiteral";
 
 
@@ -925,6 +971,7 @@ public:
   IPAddress ip;
   WebsocketsClient* webSocketClient = nullptr;
 
+  bool autoConnect = false; // used to auto retry to the videohub
 
   Network() { 
     // Get mac address
@@ -988,6 +1035,10 @@ public:
     videoHubRouter = new EthernetClient();
     if(videoHubRouter->connect(_ip, _port)) {
       info("Connected to video hub!");
+      // tell websocket client
+      if(webSocketClient->available())
+        sendMessage(webSocketClient, "[\"vh-stat\", true]");
+
 
     }
     else {
@@ -997,15 +1048,26 @@ public:
 
   }
 
+  void reconnectToVideoHub(IPAddress _ip, uint16_t _port) {
+    info("Attempting to reconnect to VideoHub...");
+
+    if(videoHubRouter->available())
+      videoHubRouter->stop();
+
+    connectToVideoHub(_ip, _port);
+    delay(1000); // Wait for telnet
+
+  }
 
   void pollVideoHub() {
     if(videoHubRouter->available()) {
+      webSocketClient->send("[\"vh-stat\", true]");
       char c = videoHubRouter->read();
         VideoHub.parse(c);
-        //Serial.print(c); // <- !!!uncomment for videohub messages!!!
+        Serial.print(c); // <- !!!uncomment for videohub messages!!!
 
     }
-    if (clock%500000 == 0) {
+    if (clock%1000000 == 0) {
       // Send a ping every second-ish
 
       // Check if last was a success:
@@ -1013,20 +1075,17 @@ public:
         // attempt to reconnect:
         VideoHub.sentPing = false;
         VideoHub.wasLastAck = false;
-
-        info("Attempting to reconnect to VideoHub...");
-        videoHubRouter->stop();
-        connectToVideoHub(videohub_ip, videohub_port);
-        delay(1000); // Wait for telnet
+        // tell websocket client
+        sendMessage(webSocketClient, "[\"vh-stat\", false]");
+        if(autoConnect) {
+          info("Auto reconnecting...");
+          reconnectToVideoHub(videohub_ip, videohub_port);
+        }
 
       }
 
-
       videoHubRouter->write("PING:\n\n");
       VideoHub.sentPing = true;
-
-
-
 
 
     }
@@ -1104,8 +1163,10 @@ public:
 
   // Helper to send messages along with a nice debug output
   void sendMessage(WebsocketsClient* _client, const char* _message) {
-    info("Sending message: ", _message);
-    _client->send(_message);
+    if(webSocketClient->available()) {
+      info("Sending message: ", _message);
+      _client->send(_message);
+    }
 
   }
 

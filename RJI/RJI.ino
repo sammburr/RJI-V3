@@ -1,7 +1,6 @@
 #include <ArduinoJson.h>
 #include <string.h>
 
-
 #include "Settings.h"
 #include "Debug.h"
 #include "Buttons.h"
@@ -16,6 +15,7 @@ void buttonCallback(int, bool);
 
 Button resetButton(ResetPin, buttonCallback);
 
+bool didJustRestart = false;
 
 void setup() {
   DebugLight.red();
@@ -30,7 +30,10 @@ void setup() {
   if(*resetFlag) {
     // Write default values to Settings
     writeDefaults();
-
+    didJustRestart = true;
+  }
+  else {
+    didJustRestart = false;
   }
 
   info("Starting Buttons...");
@@ -92,7 +95,14 @@ void loop() {
   pollButtons();
   Network.pollWebServer();
   Network.pollWebSocketServer();
-  Network.pollVideoHub();
+  
+  // Do NOT poll the video hub when restarting
+  // as this is VERY UNLIKELY to actually be pointing to the
+  // video router
+  if(!didJustRestart) {
+    Network.pollVideoHub();
+
+  }
 
   Network.clock += 1;
 
@@ -122,11 +132,38 @@ void resetInterface() {
 }
 
 
+unsigned long startTime;
+
+void startTimer() {
+
+  startTime = millis();
+
+}
+
+unsigned long endTimer() {
+
+  return millis() - startTime;
+
+}
+
 void buttonCallback(int _pin, bool _state) {
   info(_pin, ", ", _state);
   if (_pin == ResetPin && _state == true) {
     // Reset the device
-    resetInterface();
+    startTimer();
+
+  } else if(_pin == ResetPin && _state == false){
+
+    if(endTimer() >= 5000) {
+      info("Reseting The Interface!");
+      resetInterface();
+
+    }
+    else {
+      info("Rebooting The Interface!");
+      resetTeensy();
+
+    }
 
   } else {
     std::string message = "[\"gpi\",\"gpi-" + std::to_string(_pin - 28) + "\"," + std::to_string(_state) + "]";
@@ -259,6 +296,18 @@ void websocketMessageCallback(WebsocketsClient& _client, WebsocketsMessage _mess
     info("Writing button_11 source...");
     Settings.write_16bit(json[1].as<uint16_t>(), Var_Button_11_Source);
 
-  }  
+  }  else if(header == "video_hub_retry") {
+    info("Trying to connect to the video hub...");
+
+    byte ip[4];
+    uint16_t port;
+
+    Settings.read(ip, Var_VideoHubIP_Size, Var_VideoHubIP);
+    Settings.read_16bit(port, Var_VideoHubPort);
+
+    Network.reconnectToVideoHub(ip, port);
+    Network.autoConnect = true;
+
+  }
 
 }
