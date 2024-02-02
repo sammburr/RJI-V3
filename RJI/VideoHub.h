@@ -19,10 +19,10 @@ enum State {
 
   LFHeader,
   LFEndOfHeader,
-  LFStartOfDest,
-  LFDest,
   LFStartOfSource,
   LFSource,
+  LFStartOfDest,
+  LFDest,
   EOB
 
 };
@@ -42,20 +42,20 @@ public:
         lookForEndOfHeader(_c);
         break;
 
-      case LFStartOfDest:
-        lookForStartOfDest(_c);
-        break;
-
-      case LFDest:
-        lookForDest(_c);
-        break;
-
       case LFStartOfSource:
         lookForStartOfSource(_c);
         break;
 
       case LFSource:
         lookForSource(_c);
+        break;
+
+      case LFStartOfDest:
+        lookForStartOfDest(_c);
+        break;
+
+      case LFDest:
+        lookForDest(_c);
         break;
 
       case EOB:
@@ -102,7 +102,11 @@ private:
     }
     // if the char is a new line AND the header so far == "ACK", we have got an ack
     // also check if we sent a ping, if we did, reset and set sentPing to false
-    else if(_c == '\n' && currentHeader == "ACK" ) {
+    else if(_c == '\n' && (currentHeader == "ACK" || currentHeader == "NAK") ) {
+      if(currentHeader == "NAK") {
+        err("Got a NAK!");
+      }
+
       if(!sentPing)
         wasLastAck = true;
       else {
@@ -126,7 +130,7 @@ private:
 
       // do some more processing depending on the header we got
       if(currentHeader == "VIDEO OUTPUT ROUTING") {
-        currentState = LFStartOfDest;
+        currentState = LFStartOfSource;
         return;
 
       }
@@ -138,13 +142,13 @@ private:
 
   }
 
-  void lookForStartOfDest(char _c) {
+  void lookForStartOfSource(char _c) {
     // If the char is a numeric then we can add it to
     // the source string
     if(std::isdigit(_c)) {
       // Add to start of current source
-      currentDest += _c;
-      currentState = LFDest;
+      currentSource += _c;
+      currentState = LFSource;
       return;
 
     }
@@ -154,16 +158,16 @@ private:
 
   }
 
-  void lookForDest(char _c) {
+  void lookForSource(char _c) {
     // If the char is numeric then continue to add to source
     if(std::isdigit(_c)) {
-      currentDest += _c;
+      currentSource += _c;
       return;
     }
     // If we get a spcae, we want to move on to the destination
     else if(_c == ' ') {
       if(!wasLastAck) {
-        currentState = LFStartOfSource;
+        currentState = LFStartOfDest;
         return;
       }
     }
@@ -174,13 +178,13 @@ private:
 
   }
 
-  void lookForStartOfSource(char _c) {
+  void lookForStartOfDest(char _c) {
     // If the char is a numeric then we can add it to
     // the dest string
     if(std::isdigit(_c)) {
       // Add to start of current source
-      currentSource += _c;
-      currentState = LFSource;
+      currentDest += _c;
+      currentState = LFDest;
       return;
 
     }
@@ -190,17 +194,17 @@ private:
 
   }
 
-  void lookForSource(char _c) {
+  void lookForDest(char _c) {
      // If the char is numeric then continue to add to source
     if(std::isdigit(_c)) {
-      currentSource += _c;
+      currentDest += _c;
       return;
     }
     // If we get a spcae, we want to move on to the next pair
     else if(_c == '\n') {
       if(!wasLastAck) {
         routingPairs[std::stoi(currentDest)] = static_cast<u_int16_t>(std::stoi(currentSource));
-        info("Setting Routing Pair: ", currentDest.c_str(), " ", routingPairs[std::stoi(currentDest)]);
+        info("Setting Routing Pair: ", routingPairs[std::stoi(currentDest)], " ", currentDest.c_str());
 
         currentState = EOB;
         return;
@@ -223,8 +227,8 @@ private:
     // If it is a digit, we wanna go back to looking for a source
     else if(std::isdigit(_c)) {
       resetStates();
-      currentState = LFDest;
-      currentDest += _c;
+      currentState = LFSource;
+      currentSource += _c;
 
       return;
 

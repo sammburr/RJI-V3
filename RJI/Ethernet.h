@@ -1,3 +1,4 @@
+#include "core_pins.h"
 #include "IPAddress.h"
 #include <stdint.h>
 #ifndef Ethernet_h
@@ -1010,12 +1011,24 @@ public:
       // Check if last was a success:
       if(VideoHub.sentPing) {
         // attempt to reconnect:
+        VideoHub.sentPing = false;
+        VideoHub.wasLastAck = false;
+
         info("Attempting to reconnect to VideoHub...");
+        videoHubRouter->stop();
         connectToVideoHub(videohub_ip, videohub_port);
+        delay(1000); // Wait for telnet
+
       }
+
 
       videoHubRouter->write("PING:\n\n");
       VideoHub.sentPing = true;
+
+
+
+
+
     }
 
   }
