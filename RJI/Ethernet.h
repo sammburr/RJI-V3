@@ -276,24 +276,51 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         button.id = "reboot-button";
         document.body.appendChild(button);
 
+        var div = document.createElement("div");
+
         button = document.createElement("button");
         button.innerHTML = "connect to videohub";
         button.onclick = function(){sendConnectToVideohub()};
         button.id = "retry-video-button";
-        document.body.appendChild(button);
 
+        div.appendChild(button);
+        div.appendChild(document.createElement("br"));
+        div.appendChild(document.createElement("br"));
+        div.appendChild(document.createElement("br"));
+
+        var span = document.createElement("span");
+        span.id = "auto-connect-span";
+
+        var label = document.createElement("label");
+        label.innerHTML = "auto connect";
+
+
+        button = document.createElement("input");
+        button.type = "checkbox";
+        button.id = "auto-connect";
+        button.checked = true;
+
+        span.appendChild(label);
+        span.appendChild(button);
+
+        div.appendChild(span);
+
+        document.body.appendChild(div);
+        
 
     }
 
     function sendConnectToVideohub() {
-        socket.send("[\"video_hub_retry\"]");
-        location.reload();
 
+        var ac = document.getElementById("auto-connect");
+
+        socket.send("[\"video_hub_retry\", " + ac.checked + "]");
+        
     }
 
 	function sendReset() {
 	    socket.send("[\"reset\"]");
-        location.reload();
+
 
 	}
 
@@ -822,8 +849,12 @@ const char webpageA[] PROGMEM =R"rawLiteral(
     }
 
     #retry-video-button {
+        display: block;
         float: right;
+    }
 
+    #auto-connect-span {
+        float: right;
     }
 
     </style>
@@ -1029,6 +1060,7 @@ public:
   uint16_t videohub_port;
 
   void connectToVideoHub(IPAddress _ip, uint16_t _port) {
+
     videohub_ip = _ip;
     videohub_port = _port;
 
@@ -1051,8 +1083,7 @@ public:
   void reconnectToVideoHub(IPAddress _ip, uint16_t _port) {
     info("Attempting to reconnect to VideoHub...");
 
-    if(videoHubRouter->available())
-      videoHubRouter->stop();
+    videoHubRouter->stop();
 
     connectToVideoHub(_ip, _port);
     delay(1000); // Wait for telnet

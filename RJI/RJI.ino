@@ -305,8 +305,14 @@ void websocketMessageCallback(WebsocketsClient& _client, WebsocketsMessage _mess
     Settings.read(ip, Var_VideoHubIP_Size, Var_VideoHubIP);
     Settings.read_16bit(port, Var_VideoHubPort);
 
+    info(ip[0], ".", ip[1], ".",ip[2], ".",ip[3], ":", port);
+
     Network.reconnectToVideoHub(ip, port);
-    Network.autoConnect = true;
+    if(json[1].as<bool>())
+      Network.autoConnect = true;
+    else
+      Network.autoConnect = false;
+
 
   }
 
