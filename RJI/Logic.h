@@ -68,17 +68,19 @@ public:
           Settings.read_16bit(source, Var_Button_0_Source + ((int)(_pin - 29)*2));
 
           std::string msg = "VIDEO OUTPUT ROUTING:\n";
-          msg += std::to_string(source);
-          msg += " ";
           msg += std::to_string(*dest);
+          msg += " ";
+          msg += std::to_string(source);
           msg += "\n\n";
 
           info("Setting engineer: ", name, "(", *dest ,")", " to source: ", source);
           Network.sendMessageToVideoHub(msg.c_str());
 
-          // Add this to the top of this engineer's stack
-          lists[i].push_front(_pin - 29);
-
+          if (*type){
+            // Add this to the top of this engineer's stack
+            lists[i].push_front(_pin - 29);
+          }
+          
         }
         // Otherwise we need to check which logic type the engineer is using
         else if(*type) { // Momentary
@@ -93,12 +95,15 @@ public:
 
           if(lists[i].empty()) {
             source = VideoHub.routingPairs[*dest];
+            info(VideoHub.routingPairs[*dest]);
           }
 
+          info(source);
+
           std::string msg = "VIDEO OUTPUT ROUTING:\n";
-          msg += std::to_string(source);
-          msg += " ";
           msg += std::to_string(*dest);
+          msg += " ";
+          msg += std::to_string(source);
           msg += "\n\n";
 
           info("Setting engineer: ", name, "(", *dest ,")", " to source: ", source);

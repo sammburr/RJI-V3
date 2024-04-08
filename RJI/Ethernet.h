@@ -1002,6 +1002,7 @@ public:
   IPAddress ip;
   WebsocketsClient* webSocketClient = nullptr;
 
+  bool isConnectedToVH = false;
   bool autoConnect = false; // used to auto retry to the videohub
 
   Network() { 
@@ -1067,15 +1068,16 @@ public:
     videoHubRouter = new EthernetClient();
     if(videoHubRouter->connect(_ip, _port)) {
       info("Connected to video hub!");
+      isConnectedToVH = true;
       // tell websocket client
-      if(webSocketClient->available())
+      if(webSocketClient != nullptr && webSocketClient->available())
         sendMessage(webSocketClient, "[\"vh-stat\", true]");
 
 
     }
     else {
       err("Could NOT connect to video hub!");
-
+      isConnectedToVH = false;
     }
 
   }
@@ -1092,13 +1094,13 @@ public:
 
   void pollVideoHub() {
     if(videoHubRouter->available()) {
-      webSocketClient->send("[\"vh-stat\", true]");
+      
       char c = videoHubRouter->read();
         VideoHub.parse(c);
-        Serial.print(c); // <- !!!uncomment for videohub messages!!!
+        //Serial.print(c); // <- !!!uncomment for videohub messages!!!
 
     }
-    if (clock%1000000 == 0) {
+    if (clock%1000000 == 0 && isConnectedToVH) {
       // Send a ping every second-ish
 
       // Check if last was a success:
@@ -1114,6 +1116,9 @@ public:
         }
 
       }
+      else {
+        sendMessage(webSocketClient, "[\"vh-stat\", true]");
+      }
 
       videoHubRouter->write("PING:\n\n");
       VideoHub.sentPing = true;
@@ -1125,9 +1130,14 @@ public:
 
 
   void sendMessageToVideoHub(const char* _message) {
-    info("Sending message to VideoHub: ", _message);
-    videoHubRouter->write(_message);
-
+    if(isConnectedToVH) {
+      info("Sending message to VideoHub:\n", _message);
+      videoHubRouter->write(_message);
+      info("End of message");
+    }
+    else {
+      info("VideoHub is not connected! Not sending message...");
+    }
   }
 
 
@@ -1194,7 +1204,7 @@ public:
 
   // Helper to send messages along with a nice debug output
   void sendMessage(WebsocketsClient* _client, const char* _message) {
-    if(webSocketClient->available()) {
+    if(webSocketClient != nullptr && webSocketClient->available()) {
       info("Sending message: ", _message);
       _client->send(_message);
     }

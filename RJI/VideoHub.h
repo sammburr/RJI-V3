@@ -107,12 +107,16 @@ private:
         err("Got a NAK!");
       }
 
+
       if(!sentPing)
         wasLastAck = true;
       else {
         sentPing = false;
+        wasLastAck = false;
+
         //info("Successful Ping!");
       }
+
     }
 
     // if the char is anything else we got some wrong info, just return
@@ -203,8 +207,9 @@ private:
     // If we get a spcae, we want to move on to the next pair
     else if(_c == '\n') {
       if(!wasLastAck) {
-        routingPairs[std::stoi(currentDest)] = static_cast<u_int16_t>(std::stoi(currentSource));
-        info("Setting Routing Pair: ", routingPairs[std::stoi(currentDest)], " ", currentDest.c_str());
+
+        routingPairs[std::stoi(currentSource)] = static_cast<u_int16_t>(std::stoi(currentDest));
+        info("Setting Routing Pair: ", currentSource.c_str(), " ", routingPairs[std::stoi(currentSource)]);
 
         currentState = EOB;
         return;

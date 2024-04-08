@@ -36,8 +36,15 @@ void setup() {
     didJustRestart = false;
   }
 
+  info("Hold the reset button to load defaults...");
+  // Perform a small delay to give the user time to press the reset button
+  delay(2000);
+
   info("Starting Buttons...");
   startButtons(buttonCallback);
+
+  if (!digitalRead(ResetPin))
+    resetInterface();
 
   byte dhcpFlag[1];
   Settings.read(dhcpFlag, Var_DHCPToggle_Size, Var_DHCPToggle);
@@ -168,7 +175,6 @@ void buttonCallback(int _pin, bool _state) {
   } else {
     std::string message = "[\"gpi\",\"gpi-" + std::to_string(_pin - 28) + "\"," + std::to_string(_state) + "]";
     Network.sendMessage(Network.webSocketClient, message.c_str());
-
     Logic.parseButton(_pin, _state);
 
   }
