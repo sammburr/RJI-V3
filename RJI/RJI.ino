@@ -50,6 +50,8 @@ void setup() {
   Settings.read(dhcpFlag, Var_DHCPToggle_Size, Var_DHCPToggle);
 
   byte ip[4];
+  byte gw[4];
+  byte sub[4];
 
   if(*dhcpFlag) {
     info("Starting ethernet with DHCP...");
@@ -70,7 +72,9 @@ void setup() {
     info("Starting ethernet with a static IP...");
 
     Settings.read(ip, Var_InterfaceIP_Size, Var_InterfaceIP);  
-    Network.startEthernet(ip);
+    Settings.read(gw, Var_InterfaceGW_Size, Var_InterfaceGW);  
+    Settings.read(sub, Var_InterfaceSub_Size, Var_InterfaceSub);  
+    Network.startEthernet(ip, gw, sub);
 
   }
 
@@ -198,6 +202,16 @@ void websocketMessageCallback(WebsocketsClient& _client, WebsocketsMessage _mess
     info("Writing to InterfaceIP...");
     byte ip[4] = {json[1], json[2], json[3], json[4]};
     Settings.write(ip, Var_InterfaceIP_Size, Var_InterfaceIP);
+
+  } else if(header == "interface-sub") {
+    info("Writing to InterfaceSub...");
+    byte sub[4] = {json[1], json[2], json[3], json[4]};
+    Settings.write(sub, Var_InterfaceSub_Size, Var_InterfaceSub);
+
+  } else if(header == "interface-gw") {
+    info("Writing to InterfaceGW...");
+    byte gw[4] = {json[1], json[2], json[3], json[4]};
+    Settings.write(gw, Var_InterfaceGW_Size, Var_InterfaceGW);
 
   } else if(header == "interface-web-port") {
     info("Writing to InterfaceWebPort...");

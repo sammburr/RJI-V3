@@ -48,6 +48,9 @@
 #define Var_Button_10_Source_Size 2
 #define Var_Button_11_Source_Size 2
 
+#define Var_InterfaceSub_Size 4
+#define Var_InterfaceGW_Size 4
+
 // The offset (starting byte in EEPROM memory) of each var
 #define Var_InterfaceIP 0
 #define Var_WebServerPort Var_InterfaceIP + Var_InterfaceIP_Size
@@ -78,20 +81,24 @@
 #define Var_Button_10_Source  Var_Button_9_Source + Var_Button_9_Source_Size 
 #define Var_Button_11_Source  Var_Button_10_Source + Var_Button_10_Source_Size 
 
-
+#define Var_InterfaceSub Var_Button_11_Source + Var_InterfaceSub_Size
+#define Var_InterfaceGW Var_InterfaceSub + Var_InterfaceGW_Size
 
 class Settings {
 
 // Default values for settings
-byte interface_ip[Var_InterfaceIP_Size] =     {192,168,10,50};
-byte videohub_ip[Var_VideoHubIP_Size] =       {192,168,10,240}; //TODO make this something sensible
+byte interface_ip[Var_InterfaceIP_Size] =     {192,168,9,51};
+byte videohub_ip[Var_VideoHubIP_Size] =       {192,168,9,11}; //TODO make this something sensible
 //byte videohub_ip[Var_VideoHubIP_Size] =       {172,16,21,55}; //TODO make this something sensible
 
-uint16_t webserver_port =                     8080;
-uint16_t websocket_port =                     80;
+byte interface_sub[Var_InterfaceSub_Size] =         {255,255,255,0};
+byte interface_gw[Var_InterfaceGW_Size] =           {192,168,9,1};
+
+uint16_t webserver_port =                     80;
+uint16_t websocket_port =                     8080;
 uint16_t videohub_port =                      9990;
 byte reset_flag[Var_ResetInterface_Size] =    {0};
-byte dhcp_toggle[Var_DHCPToggle_Size] =       {1};
+byte dhcp_toggle[Var_DHCPToggle_Size] =       {0};
 
 byte eng_0[Var_Eng_0_Size] =                  {B00000000, B00001111, 0, 1, 'V', 'i', 's', ' ', '1', '\0', 'x', 'x', 'x', 'x'};
 byte eng_1[Var_Eng_1_Size] =                  {B00000000, B11110000, 1, 1, 'V', 'i', 's', ' ', '2', '\0', 'x', 'x', 'x', 'x'};
@@ -207,6 +214,8 @@ public:
     write_16bit(button_10_source, Var_Button_10_Source);
     write_16bit(button_11_source, Var_Button_11_Source);
 
+    write(interface_sub, Var_InterfaceSub_Size, Var_InterfaceSub);
+    write(interface_gw, Var_InterfaceGW_Size, Var_InterfaceGW);
   }
 
 
@@ -215,6 +224,10 @@ public:
   void printSettings() {
     byte ip[Var_InterfaceIP_Size];
     read(ip, Var_InterfaceIP_Size, Var_InterfaceIP);
+    byte sub[Var_InterfaceSub_Size];
+    read(sub, Var_InterfaceSub_Size, Var_InterfaceSub);
+    byte gw[Var_InterfaceGW_Size];
+    read(gw, Var_InterfaceGW_Size, Var_InterfaceGW);
     uint16_t webServerPort;
     read_16bit(webServerPort, Var_WebServerPort);
     byte resetFlag[Var_ResetInterface_Size];
@@ -231,6 +244,8 @@ public:
     Debug.printSubTitle("SETTINGS START");
     
     info("IP: ", ip[0], ".", ip[1], ".", ip[2], ".", ip[3]);
+    info("Subnet: ", sub[0], ".", sub[1], ".", sub[2], ".", sub[3]);
+    info("Gateway: ", gw[0], ".", gw[1], ".", gw[2], ".", gw[3]);
     info("WebServerPort: ", webServerPort);
     info("WebSocketPort: ", webSocketPort);
     info("Reset Flag: ", *resetFlag);
@@ -289,6 +304,10 @@ public:
     // Body
     byte ip[Var_InterfaceIP_Size];
     read(ip, Var_InterfaceIP_Size, Var_InterfaceIP);
+    byte sub[Var_InterfaceSub_Size];
+    read(sub, Var_InterfaceSub_Size, Var_InterfaceSub);
+    byte gw[Var_InterfaceGW_Size];
+    read(gw, Var_InterfaceGW_Size, Var_InterfaceGW);
     uint16_t webServerPort;
     read_16bit(webServerPort, Var_WebServerPort);
     byte resetFlag[Var_ResetInterface_Size];
@@ -370,6 +389,20 @@ public:
 
     }
 
+
+    // Subnet
+    doc[8][0] = "interface-sub";
+    doc[8][1] = sub[0];
+    doc[8][2] = sub[1];
+    doc[8][3] = sub[2];
+    doc[8][4] = sub[3];
+
+    // Gateway
+    doc[9][0] = "interface-gw";
+    doc[9][1] = gw[0];
+    doc[9][2] = gw[1];
+    doc[9][3] = gw[2];
+    doc[9][4] = gw[3];
 
     return doc;
 

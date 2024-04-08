@@ -80,7 +80,7 @@ public:
             // Add this to the top of this engineer's stack
             lists[i].push_front(_pin - 29);
           }
-          
+
         }
         // Otherwise we need to check which logic type the engineer is using
         else if(*type) { // Momentary
@@ -95,10 +95,7 @@ public:
 
           if(lists[i].empty()) {
             source = VideoHub.routingPairs[*dest];
-            info(VideoHub.routingPairs[*dest]);
           }
-
-          info(source);
 
           std::string msg = "VIDEO OUTPUT ROUTING:\n";
           msg += std::to_string(*dest);

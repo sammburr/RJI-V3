@@ -31,7 +31,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
     <script>
 
-    var socket = new WebSocket("ws://" + window.location.hostname + ":80"); // This starts up the socket connection automagically.
+    var socket = new WebSocket("ws://" + window.location.hostname + ":8080"); // This starts up the socket connection automagically.
     var lastMessageDate;                                // Used to keep track of last message sent to check if we have
                                                         // disconnected from the interface.
 
@@ -134,6 +134,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
             // Get the input object
             var inputObject = document.getElementById(element[0]);
+            if (inputObject != null) {
             // Here I am assuming there is only one class
             var inputType = inputObject.classList[0];
             
@@ -151,6 +152,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
                     inputObject.checked = element[1];
                     break;
 
+            }
             }
 
         });
@@ -189,7 +191,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
             const name = document.getElementById(rows[i+1].id + "_name");
 
             mask.value = parseInt(engineers[i+1][0]).toString(2);
-            dest.value = engineers[i+1][1];
+            dest.value = engineers[i+1][1] + 1;
             type.checked = engineers[i+1][2];
             name.value = engineers[i+1][3];
 
@@ -208,7 +210,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         for(let i=0; i<12; i++) {
 
             const source = document.getElementById(rows[i+1].id + "_source");
-            source.value = buttons[i+1];
+            source.value = buttons[i+1] + 1;
 
         }   
 
@@ -217,7 +219,8 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
     var inputObjects = [
         { id:"interface-ip", input_type:"ip",  label:"Interface IP ", error_message:" Not a valid IP!"},
-        { id:"interface-web-port", input_type:"port",  label:"Interface Web Port ", error_message:" Not a valid port number!"},
+        { id:"interface-gw", input_type:"ip",  label:"Interface Gateway IP ", error_message:" Not a valid IP!"},
+        { id:"interface-sub", input_type:"ip",  label:"Interface Subnet Mask ", error_message:" Not a valid Subnet Mask!"},
         { id:"interface-dhcp", input_type:"bool", label:"Toggle DHCP ", error_message:" ???Thats not good???" },
         { id:"videohub-ip", input_type:"ip", label:"VideoHub IP ", error_message:" Not a valid IP!"},
         { id:"videohub-port", input_type:"port", label:"VideoHub Port ", error_message:" Not a valid port number!"}
@@ -289,6 +292,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         div.appendChild(document.createElement("br"));
 
         var span = document.createElement("span");
+        span.style.display = "none";
         span.id = "auto-connect-span";
 
         var label = document.createElement("label");
@@ -312,9 +316,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
     function sendConnectToVideohub() {
 
-        var ac = document.getElementById("auto-connect");
-
-        socket.send("[\"video_hub_retry\", " + ac.checked + "]");
+        socket.send("[\"video_hub_retry\", " + false + "]");
         
     }
 
@@ -405,7 +407,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
             falsifiable = falsifiable || !isValidName(name.value);
 
             message += parseInt(mask.value, 2) + ",";
-            message += parseInt(dest.value) + ",";
+            message += parseInt(dest.value) - 1 + ",";
             message += type.checked + ",";
             message += "\"" + name.value + "\"]";
 
@@ -437,7 +439,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
             const error = document.getElementById(rowsButt[i+1].id + "-error");
 
 
-            message += "\"" + source.value + "\"]";
+            message += "\"" + (source.value - 1) + "\"]";
 
             if(!isPortValid(source.value)) {
                 // Get error
@@ -582,24 +584,24 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         const eng4t = document.getElementById("eng_4_type");
         const eng5t = document.getElementById("eng_5_type");
 
-        if(eng0t.checked) eng0.innerHTML = "Latch";
-        if(eng1t.checked) eng1.innerHTML = "Latch";
-        if(eng2t.checked) eng2.innerHTML = "Latch";
-        if(eng3t.checked) eng3.innerHTML = "Latch";
-        if(eng4t.checked) eng4.innerHTML = "Latch";
-        if(eng5t.checked) eng5.innerHTML = "Latch";
+        if(eng0t.checked) eng0.innerHTML = "Toggle";
+        if(eng1t.checked) eng1.innerHTML = "Toggle";
+        if(eng2t.checked) eng2.innerHTML = "Toggle";
+        if(eng3t.checked) eng3.innerHTML = "Toggle";
+        if(eng4t.checked) eng4.innerHTML = "Toggle";
+        if(eng5t.checked) eng5.innerHTML = "Toggle";
 
 
     }
 
     function switchLogic(evt, checkbox) {
-        if(evt.currentTarget.innerHTML == "Toggle") {
-            evt.currentTarget.innerHTML = "Latch";
+        if(evt.currentTarget.innerHTML == "Latch") {
+            evt.currentTarget.innerHTML = "Toggle";
             document.getElementById(checkbox).checked = true;
         }
         else {
             document.getElementById(checkbox).checked = false;
-            evt.currentTarget.innerHTML = "Toggle";
+            evt.currentTarget.innerHTML = "Latch";
         }
 
     }
@@ -857,6 +859,15 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         float: right;
     }
 
+    img {
+      padding: 10px;
+    }
+
+    page-title {
+      font-size: 50px;
+      font-weight: bold;
+    }
+
     </style>
 
 </head>
@@ -864,7 +875,13 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
 <body>
 
-
+    <img
+      src="data:image/png;base64,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"
+    />
+    <br>
+    <page-title>Router Joystick Interface 3</page-title>
+    <br>
+    <br>
     <span id="ws-connection-status">Not Connected!</span>
     <span id="vh-connection-status">Not Connected to VideoHub!</span>
 
@@ -899,27 +916,27 @@ const char webpageA[] PROGMEM =R"rawLiteral(
             </tr>
     
             <tr id="eng_0">
-                <td  style="display:none" ><input id="eng_0_mask" class="mask"></td><td><input id="eng_0_dest" class="route"></td> <td><button id="eng_0_logic" onclick="switchLogic(event, 'eng_0_type')">Toggle</button></td> <td><input style="display: none;" id="eng_0_type" type = "checkbox" class="type"></td><td><input id="eng_0_name" class="name"></td><td><error id="eng_0-error"></error></td>
+                <td  style="display:none" ><input id="eng_0_mask" class="mask"></td><td><input id="eng_0_dest" class="route"></td> <td><button id="eng_0_logic" onclick="switchLogic(event, 'eng_0_type')">Latch</button></td> <td><input style="display: none;" id="eng_0_type" type = "checkbox" class="type"></td><td><input id="eng_0_name" class="name"></td><td><error id="eng_0-error"></error></td>
             </tr>
     
             <tr id="eng_1">
-                <td  style="display:none" ><input id="eng_1_mask" class="mask"></td><td><input id="eng_1_dest" class="route"></td> <td><button id="eng_1_logic"  onclick="switchLogic(event, 'eng_1_type')">Toggle</button></td> <td><input style="display: none;" id="eng_1_type" type = "checkbox" class="type"></td><td><input id="eng_1_name" class="name"></td><td><error id="eng_1-error"></error></td>
+                <td  style="display:none" ><input id="eng_1_mask" class="mask"></td><td><input id="eng_1_dest" class="route"></td> <td><button id="eng_1_logic"  onclick="switchLogic(event, 'eng_1_type')">Latch</button></td> <td><input style="display: none;" id="eng_1_type" type = "checkbox" class="type"></td><td><input id="eng_1_name" class="name"></td><td><error id="eng_1-error"></error></td>
             </tr>
     
             <tr id="eng_2">
-                <td  style="display:none" ><input id="eng_2_mask" class="mask"></td><td><input id="eng_2_dest" class="route"></td> <td><button id="eng_2_logic"  onclick="switchLogic(event, 'eng_2_type')">Toggle</button></td> <td><input style="display: none;" id="eng_2_type" type = "checkbox" class="type"></td><td><input id="eng_2_name" class="name"></td><td><error id="eng_2-error"></error></td>
+                <td  style="display:none" ><input id="eng_2_mask" class="mask"></td><td><input id="eng_2_dest" class="route"></td> <td><button id="eng_2_logic"  onclick="switchLogic(event, 'eng_2_type')">Latch</button></td> <td><input style="display: none;" id="eng_2_type" type = "checkbox" class="type"></td><td><input id="eng_2_name" class="name"></td><td><error id="eng_2-error"></error></td>
             </tr>
     
             <tr id="eng_3">
-                <td  style="display:none" ><input id="eng_3_mask" class="mask"></td><td><input id="eng_3_dest" class="route"></td> <td><button id="eng_3_logic"  onclick="switchLogic(event, 'eng_3_type')">Toggle</button></td> <td><input style="display: none;" id="eng_3_type" type = "checkbox" class="type"></td><td><input id="eng_3_name" class="name"></td><td><error id="eng_3-error"></error></td>
+                <td  style="display:none" ><input id="eng_3_mask" class="mask"></td><td><input id="eng_3_dest" class="route"></td> <td><button id="eng_3_logic"  onclick="switchLogic(event, 'eng_3_type')">Latch</button></td> <td><input style="display: none;" id="eng_3_type" type = "checkbox" class="type"></td><td><input id="eng_3_name" class="name"></td><td><error id="eng_3-error"></error></td>
             </tr>
     
             <tr id="eng_4">
-                <td  style="display:none" ><input id="eng_4_mask" class="mask"></td><td><input id="eng_4_dest" class="route"></td> <td><button id="eng_4_logic"  onclick="switchLogic(event, 'eng_4_type')">Toggle</button></td> <td><input style="display: none;" id="eng_4_type" type = "checkbox" class="type"></td><td><input id="eng_4_name" class="name"></td><td><error id="eng_4-error"></error></td>
+                <td  style="display:none" ><input id="eng_4_mask" class="mask"></td><td><input id="eng_4_dest" class="route"></td> <td><button id="eng_4_logic"  onclick="switchLogic(event, 'eng_4_type')">Latch</button></td> <td><input style="display: none;" id="eng_4_type" type = "checkbox" class="type"></td><td><input id="eng_4_name" class="name"></td><td><error id="eng_4-error"></error></td>
             </tr>
     
             <tr id="eng_5">
-                <td  style="display:none" ><input id="eng_5_mask" class="mask"></td><td><input id="eng_5_dest" class="route"></td> <td><button id="eng_5_logic"  onclick="switchLogic(event, 'eng_5_type')">Toggle</button></td> <td><input style="display: none;" id="eng_5_type" type = "checkbox" class="type"></td><td><input id="eng_5_name" class="name"></td><td><error id="eng_5-error"></error></td>
+                <td  style="display:none" ><input id="eng_5_mask" class="mask"></td><td><input id="eng_5_dest" class="route"></td> <td><button id="eng_5_logic"  onclick="switchLogic(event, 'eng_5_type')">Latch</button></td> <td><input style="display: none;" id="eng_5_type" type = "checkbox" class="type"></td><td><input id="eng_5_name" class="name"></td><td><error id="eng_5-error"></error></td>
             </tr>
     
         </table>
@@ -1014,9 +1031,13 @@ public:
 
   // Startup ethernet
   // @param (IPAddress) ip address to start ethernet on  
-  void startEthernet(IPAddress _ip) {
-    Ethernet.begin(mac, _ip);
+  void startEthernet(IPAddress _ip, IPAddress _gateway, IPAddress _subnet) {
+    // Default dns
+    IPAddress dns(_ip[0], _ip[1], _ip[2], 1);
+    Ethernet.begin(mac, _ip, dns, _gateway, _subnet);
     info("Ethernet has local IP: ", Ethernet.localIP());
+    info("Ethernet has gateway IP: ", Ethernet.gatewayIP());
+    info("Ethernet has subnet mask: ", Ethernet.subnetMask());
     ip = _ip;
 
   }
@@ -1110,14 +1131,12 @@ public:
         VideoHub.wasLastAck = false;
         // tell websocket client
         sendMessage(webSocketClient, "[\"vh-stat\", false]");
-        if(autoConnect) {
-          info("Auto reconnecting...");
-          reconnectToVideoHub(videohub_ip, videohub_port);
-        }
+        isConnectedToVH = false;
 
       }
       else {
         sendMessage(webSocketClient, "[\"vh-stat\", true]");
+        isConnectedToVH = true;
       }
 
       videoHubRouter->write("PING:\n\n");
@@ -1137,6 +1156,8 @@ public:
     }
     else {
       info("VideoHub is not connected! Not sending message...");
+      info("Reconnecting...");
+      connectToVideoHub(videohub_ip, videohub_port);
     }
   }
 
