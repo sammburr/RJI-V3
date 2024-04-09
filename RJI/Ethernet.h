@@ -1017,6 +1017,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 </body>
 )rawLiteral";
 
+#define PACKET_MAX_SIZE 1024 * 4
 
 // Singleton for easy use of NativeEthernet library
 class Network {
@@ -1042,6 +1043,7 @@ public:
     // Default dns
     IPAddress dns(_ip[0], _ip[1], _ip[2], 1);
     Ethernet.begin(mac, _ip, dns, _gateway, _subnet);
+    Ethernet.setSocketSize(PACKET_MAX_SIZE);
     info("Ethernet has local IP: ", Ethernet.localIP());
     info("Ethernet has gateway IP: ", Ethernet.gatewayIP());
     info("Ethernet has subnet mask: ", Ethernet.subnetMask());
@@ -1053,6 +1055,7 @@ public:
   // Startup ethernet with DHCP
   void startEthernet() {
     Ethernet.begin(mac);
+    Ethernet.setSocketSize(PACKET_MAX_SIZE);
     info("Ethernet has local IP: ", Ethernet.localIP());
     ip = Ethernet.localIP();
 
@@ -1128,43 +1131,24 @@ public:
         //Serial.print(c); // <- !!!uncomment for videohub messages!!!
 
     }
-    if (clock%1000000 == 0 && isConnectedToVH) {
-      // Send a ping every second-ish
 
-      // Check if last was a success:
-      if(VideoHub.sentPing) {
-        // attempt to reconnect:
-        VideoHub.sentPing = false;
-        VideoHub.wasLastAck = false;
-        // tell websocket client
-        sendMessage(webSocketClient, "[\"vh-stat\", false]");
-        isConnectedToVH = false;
-
-      }
-      else {
-        sendMessage(webSocketClient, "[\"vh-stat\", true]");
-        isConnectedToVH = true;
-      }
-
-      videoHubRouter->write("PING:\n\n");
-      VideoHub.sentPing = true;
-
-
+    if(!videoHubRouter->connected()) {
+      info("Disconnected!");
+      isConnectedToVH = false;
     }
-
   }
-
 
   void sendMessageToVideoHub(const char* _message) {
     if(isConnectedToVH) {
       info("Sending message to VideoHub:\n", _message);
-      videoHubRouter->write(_message);
+      videoHubRouter->write(_message);\
+      VideoHub.expected_resp ++;
       info("End of message");
     }
     else {
       info("VideoHub is not connected! Not sending message...");
       info("Reconnecting...");
-      connectToVideoHub(videohub_ip, videohub_port);
+      reconnectToVideoHub(videohub_ip, videohub_port);
     }
   }
 
@@ -1233,7 +1217,7 @@ public:
   // Helper to send messages along with a nice debug output
   void sendMessage(WebsocketsClient* _client, const char* _message) {
     if(webSocketClient != nullptr && webSocketClient->available()) {
-      info("Sending message: ", _message);
+      //info("Sending message: ", _message);
       _client->send(_message);
     }
 

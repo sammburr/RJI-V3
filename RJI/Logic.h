@@ -43,6 +43,8 @@ private:
 class Logic {
 
 public:
+
+
   // Parse a button pin and state to the routing logic
   void parseButton(int _pin, bool _state) {
 
@@ -67,13 +69,16 @@ public:
           uint16_t source;
           Settings.read_16bit(source, Var_Button_0_Source + ((int)(_pin - 29)*2));
 
+          VideoHub.lastSource = *dest;
+          VideoHub.lastDest = source;
+
           std::string msg = "VIDEO OUTPUT ROUTING:\n";
           msg += std::to_string(*dest);
           msg += " ";
           msg += std::to_string(source);
           msg += "\n\n";
 
-          info("Setting engineer: ", name, "(", *dest ,")", " to source: ", source);
+          //info("Setting engineer: ", name, "(", *dest ,")", " to source: ", source);
           Network.sendMessageToVideoHub(msg.c_str());
 
           if (*type){
@@ -97,13 +102,16 @@ public:
             source = VideoHub.routingPairs[*dest];
           }
 
+          VideoHub.lastSource = *dest;
+          VideoHub.lastDest = source;
+
           std::string msg = "VIDEO OUTPUT ROUTING:\n";
           msg += std::to_string(*dest);
           msg += " ";
           msg += std::to_string(source);
           msg += "\n\n";
 
-          info("Setting engineer: ", name, "(", *dest ,")", " to source: ", source);
+          //info("Setting engineer: ", name, "(", *dest ,")", " to source: ", source);
           Network.sendMessageToVideoHub(msg.c_str());
 
         }

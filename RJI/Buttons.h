@@ -2,6 +2,7 @@
 #ifndef Buttons_h
 #define Buttons_h
 
+#include <Bounce.h>
 
 // This header contains helper functions, classes and defintions for interfacing with
 // buttons on the interface.
@@ -22,6 +23,7 @@ private:
   int pin;
   ButtonCallback callback;
   bool lastState = false;
+  Bounce* debounced;
 
 public:
   // @param (ButtonCallback) function to call on button press/release
@@ -31,20 +33,33 @@ public:
     pin = _pin;
     callback = _callback;
     
+    // Create a debounced button
+    debounced = new Bounce(_pin, 40);
+
   }
 
 
   // Poll this button, calls the button callback
   void poll() {
-    bool state = digitalRead(pin);
-    // Flip state as this is a INPUT_PULLUP
-    state = !state;
+    // bool state = digitalRead(pin);
+    // // Flip state as this is a INPUT_PULLUP
+    // state = !state;
 
-    // Callfunction if the state has changed
-    if(state != lastState) {
-      callback(pin, state);
+    // // Callfunction if the state has changed
+    // if(state != lastState) {
+    //   callback(pin, state);
+    // }
+    // lastState = state;
+
+    // Debounced Solution
+    if(debounced->update()) {
+      if(debounced->fallingEdge()) {
+        callback(pin, true);
+      }
+      else {
+        callback(pin, false);
+      }
     }
-    lastState = state;
 
   }
 

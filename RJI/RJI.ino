@@ -7,15 +7,12 @@
 #include "Ethernet.h"
 #include "Logic.h"
 
-
 void (*resetTeensy) (void) = 0; // A function defined at memory location zero causes the arduino to
                                 // reboot
 void buttonCallback(int, bool);
 
-
 Button resetButton(ResetPin, buttonCallback);
 
-bool didJustRestart = false;
 
 void setup() {
   DebugLight.red();
@@ -25,15 +22,13 @@ void setup() {
 
   Settings.printSettings();
 
+  attachInterrupt(digitalPinToInterrupt(ResetPin), resetButtonFun, INPUT_PULLUP);
+
   byte resetFlag[1];
   Settings.read(resetFlag, Var_ResetInterface_Size, Var_ResetInterface);
   if(*resetFlag) {
     // Write default values to Settings
     writeDefaults();
-    didJustRestart = true;
-  }
-  else {
-    didJustRestart = false;
   }
 
   info("Hold the reset button to load defaults...");
@@ -43,8 +38,8 @@ void setup() {
   info("Starting Buttons...");
   startButtons(buttonCallback);
 
-  if (!digitalRead(ResetPin))
-    resetInterface();
+  // if (!digitalRead(ResetPin))
+  //   resetInterface();
 
   byte dhcpFlag[1];
   Settings.read(dhcpFlag, Var_DHCPToggle_Size, Var_DHCPToggle);
@@ -107,13 +102,7 @@ void loop() {
   Network.pollWebServer();
   Network.pollWebSocketServer();
   
-  // Do NOT poll the video hub when restarting
-  // as this is VERY UNLIKELY to actually be pointing to the
-  // video router
-  if(!didJustRestart) {
-    Network.pollVideoHub();
-
-  }
+  Network.pollVideoHub();
 
   Network.clock += 1;
 
@@ -143,40 +132,26 @@ void resetInterface() {
 }
 
 
-unsigned long startTime;
+volatile unsigned long startTime;
 
-void startTimer() {
+void resetButtonFun() {
 
-  startTime = millis();
+  delay(3000);
 
-}
-
-unsigned long endTimer() {
-
-  return millis() - startTime;
+  if(!digitalRead(ResetPin)) {
+    info("Reseting The Interface!");
+    resetInterface();
+  }
+  else {
+    info("Rebooting The Interface!");
+    resetTeensy();
+  }
 
 }
 
 void buttonCallback(int _pin, bool _state) {
   info(_pin, ", ", _state);
-  if (_pin == ResetPin && _state == true) {
-    // Reset the device
-    startTimer();
-
-  } else if(_pin == ResetPin && _state == false){
-
-    if(endTimer() >= 5000) {
-      info("Reseting The Interface!");
-      resetInterface();
-
-    }
-    else {
-      info("Rebooting The Interface!");
-      resetTeensy();
-
-    }
-
-  } else {
+  {
     std::string message = "[\"gpi\",\"gpi-" + std::to_string(_pin - 28) + "\"," + std::to_string(_state) + "]";
     Network.sendMessage(Network.webSocketClient, message.c_str());
     Logic.parseButton(_pin, _state);

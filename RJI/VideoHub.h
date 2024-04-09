@@ -74,6 +74,10 @@ public:
   // value = source
   u_int16_t routingPairs[1024];
 
+  int expected_resp = 0;
+  int16_t lastSource = -1;
+  int16_t lastDest = -1;
+
 private:
 
 
@@ -106,16 +110,18 @@ private:
       if(currentHeader == "NAK") {
         err("Got a NAK!");
       }
+      //wasLastAck = true;
 
 
-      if(!sentPing)
-        wasLastAck = true;
-      else {
-        sentPing = false;
-        wasLastAck = false;
+      // if(!sentPing)
+      //   wasLastAck = true;
+      // else {
+      //   sentPing = false;
 
-        //info("Successful Ping!");
-      }
+      //   info("Successful Ping!");
+      // }
+
+      // info(--expected_resp);
 
     }
 
@@ -208,8 +214,18 @@ private:
     else if(_c == '\n') {
       if(!wasLastAck) {
 
-        routingPairs[std::stoi(currentSource)] = static_cast<u_int16_t>(std::stoi(currentDest));
-        info("Setting Routing Pair: ", currentSource.c_str(), " ", routingPairs[std::stoi(currentSource)]);
+        u_int16_t source = static_cast<u_int16_t>(std::stoi(currentSource));
+        u_int16_t dest = static_cast<u_int16_t>(std::stoi(currentDest));
+
+        if (source == lastSource && dest == lastDest){
+          lastSource = -1;
+          lastDest = -1;
+        }
+        else {
+          routingPairs[source] = dest;
+          info("Setting Routing Pair: ", currentSource.c_str(), " ", routingPairs[source]);
+        }
+
 
         currentState = EOB;
         return;
