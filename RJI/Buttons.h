@@ -23,6 +23,7 @@ private:
   int pin;
   ButtonCallback callback;
   bool lastState = false;
+  bool justedStarted = true;
   Bounce* debounced;
 
 public:
@@ -53,6 +54,10 @@ public:
 
     // Debounced Solution
     if(debounced->update()) {
+      if(justedStarted) {
+        justedStarted = false;
+        return;
+      }
       if(debounced->fallingEdge()) {
         callback(pin, true);
       }

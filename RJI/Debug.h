@@ -76,9 +76,7 @@ public:
   // Start and wait for Serial output
   void startSerial() {
     Serial.begin(115200);
-    while(!Serial) {
-      delay(10);
-    }
+    delay(100);
   }
 
 

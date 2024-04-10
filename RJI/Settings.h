@@ -88,7 +88,7 @@ class Settings {
 
 // Default values for settings
 byte interface_ip[Var_InterfaceIP_Size] =     {192,168,10,51};
-byte videohub_ip[Var_VideoHubIP_Size] =       {192,168,10,10}; //TODO make this something sensible
+byte videohub_ip[Var_VideoHubIP_Size] =       {192,168,10,11}; //TODO make this something sensible
 //byte videohub_ip[Var_VideoHubIP_Size] =       {172,16,21,55}; //TODO make this something sensible
 
 byte interface_sub[Var_InterfaceSub_Size] =         {255,255,255,0};

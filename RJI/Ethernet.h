@@ -1133,9 +1133,13 @@ public:
     }
 
     if(!videoHubRouter->connected()) {
-      info("Disconnected!");
+      sendMessage(webSocketClient, "[\"vh-stat\", false]");
       isConnectedToVH = false;
     }
+    else {
+      sendMessage(webSocketClient, "[\"vh-stat\", true]");
+    }
+
   }
 
   void sendMessageToVideoHub(const char* _message) {
