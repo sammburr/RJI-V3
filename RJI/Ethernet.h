@@ -1132,12 +1132,14 @@ public:
 
     }
 
-    if(!videoHubRouter->connected()) {
-      sendMessage(webSocketClient, "[\"vh-stat\", false]");
-      isConnectedToVH = false;
-    }
-    else {
-      sendMessage(webSocketClient, "[\"vh-stat\", true]");
+    if (millis() % 1000 == 0) {
+      if(!videoHubRouter->connected()) {
+        sendMessage(webSocketClient, "[\"vh-stat\", false]");
+        isConnectedToVH = false;
+      }
+      else {
+        sendMessage(webSocketClient, "[\"vh-stat\", true]");
+      }
     }
 
   }
