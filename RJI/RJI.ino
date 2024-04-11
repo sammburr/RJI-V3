@@ -31,9 +31,9 @@ void setup() {
     writeDefaults();
   }
 
-  info("Hold the reset button to load defaults...");
-  // Perform a small delay to give the user time to press the reset button
-  delay(2000);
+  // info("Hold the reset button to load defaults...");
+  // // Perform a small delay to give the user time to press the reset button
+  // delay(2000);
 
   info("Starting Buttons...");
   startButtons(buttonCallback);
@@ -97,7 +97,7 @@ void setup() {
 
 
 void loop() {
-  resetButton.poll();
+  //resetButton.poll();
   pollButtons();
   Network.pollWebServer();
   Network.pollWebSocketServer();
