@@ -137,7 +137,7 @@ volatile unsigned long startTime;
 void resetButtonFun() {
 
   delay(3000);
-
+  //is reset button still held after delay?
   if(!digitalRead(ResetPin)) {
     info("Reseting The Interface!");
     resetInterface();
