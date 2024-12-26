@@ -336,6 +336,11 @@ void websocketMessageCallback(WebsocketsClient& _client, WebsocketsMessage _mess
     info("Writing return_to_source_5 source...");
     Settings.write(json[1].as<const char*>(), Var_Return_To_Source_Size, Var_Return_To_Source_5);
     
+  } else if(header == "gpi_down") {
+    buttonCallback(json[1].as<int>() + 28, true);
+  } else if(header == "gpi_up") {
+    buttonCallback(json[1].as<int>() + 28, false);
+
   }
 
 }

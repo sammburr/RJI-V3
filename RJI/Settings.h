@@ -105,7 +105,7 @@ byte interface_gw[Var_InterfaceGW_Size] =           {192,168,10,1};
 
 uint16_t webserver_port =                     80;
 uint16_t websocket_port =                     8080;
-uint16_t videohub_port =                      9990;
+uint16_t videohub_port =                      7788;
 byte reset_flag[Var_ResetInterface_Size] =    {0};
 byte dhcp_toggle[Var_DHCPToggle_Size] =       {0};
 
