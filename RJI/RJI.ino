@@ -84,6 +84,7 @@ void setup() {
   Settings.read_16bit(port, Var_WebSocketPort);
   Network.startWebSocketServer(port, websocketMessageCallback);
 
+  // TODO: REFACTOR
   info("Connecting to VideoHub...");
 
   Settings.read(ip, Var_VideoHubIP_Size, Var_VideoHubIP);
@@ -102,6 +103,7 @@ void loop() {
   Network.pollWebServer();
   Network.pollWebSocketServer();
   
+  // TODO: REMOVE
   Network.pollVideoHub();
 
   Network.clock += 1;
@@ -161,6 +163,7 @@ void buttonCallback(int _pin, bool _state) {
 }
 
 
+// TODO REFACTOR
 void websocketMessageCallback(WebsocketsClient& _client, WebsocketsMessage _message) {
   info("Got a message: ", _message.data());
 
@@ -245,51 +248,51 @@ void websocketMessageCallback(WebsocketsClient& _client, WebsocketsMessage _mess
 
   } else if(header == "button_0") {
     info("Writing button_0 source...");
-    Settings.write_16bit(json[1].as<uint16_t>(), Var_Button_0_Source);
+    Settings.write(json[1].as<const char*>(), Var_Return_To_Source_Size, Var_Button_0_Source);
 
   } else if(header == "button_1") {
     info("Writing button_1 source...");
-    Settings.write_16bit(json[1].as<uint16_t>(), Var_Button_1_Source);
+    Settings.write(json[1].as<const char*>(), Var_Return_To_Source_Size, Var_Button_1_Source);
 
   } else if(header == "button_2") {
     info("Writing button_2 source...");
-    Settings.write_16bit(json[1].as<uint16_t>(), Var_Button_2_Source);
+    Settings.write(json[1].as<const char*>(), Var_Return_To_Source_Size, Var_Button_2_Source);
 
   } else if(header == "button_3") {
     info("Writing button_3 source...");
-    Settings.write_16bit(json[1].as<uint16_t>(), Var_Button_3_Source);
+    Settings.write(json[1].as<const char*>(), Var_Return_To_Source_Size, Var_Button_3_Source);
 
   } else if(header == "button_4") {
     info("Writing button_4 source...");
-    Settings.write_16bit(json[1].as<uint16_t>(), Var_Button_4_Source);
+    Settings.write(json[1].as<const char*>(), Var_Return_To_Source_Size, Var_Button_4_Source);
 
   } else if(header == "button_5") {
     info("Writing button_5 source...");
-    Settings.write_16bit(json[1].as<uint16_t>(), Var_Button_5_Source);
+    Settings.write(json[1].as<const char*>(), Var_Return_To_Source_Size, Var_Button_5_Source);
 
   } else if(header == "button_6") {
     info("Writing button_6 source...");
-    Settings.write_16bit(json[1].as<uint16_t>(), Var_Button_6_Source);
+    Settings.write(json[1].as<const char*>(), Var_Return_To_Source_Size, Var_Button_6_Source);
 
   } else if(header == "button_7") {
     info("Writing button_7 source...");
-    Settings.write_16bit(json[1].as<uint16_t>(), Var_Button_7_Source);
+    Settings.write(json[1].as<const char*>(), Var_Return_To_Source_Size, Var_Button_7_Source);
 
   } else if(header == "button_8") {
     info("Writing button_8 source...");
-    Settings.write_16bit(json[1].as<uint16_t>(), Var_Button_8_Source);
+    Settings.write(json[1].as<const char*>(), Var_Return_To_Source_Size, Var_Button_8_Source);
 
   } else if(header == "button_9") {
     info("Writing button_9 source...");
-    Settings.write_16bit(json[1].as<uint16_t>(), Var_Button_9_Source);
+    Settings.write(json[1].as<const char*>(), Var_Return_To_Source_Size, Var_Button_9_Source);
 
   } else if(header == "button_10") {
     info("Writing button_10 source...");
-    Settings.write_16bit(json[1].as<uint16_t>(), Var_Button_10_Source);
+    Settings.write(json[1].as<const char*>(), Var_Return_To_Source_Size, Var_Button_10_Source);
 
   } else if(header == "button_11") {
     info("Writing button_11 source...");
-    Settings.write_16bit(json[1].as<uint16_t>(), Var_Button_11_Source);
+    Settings.write(json[1].as<const char*>(), Var_Return_To_Source_Size, Var_Button_11_Source);
 
   }  else if(header == "video_hub_retry") {
     info("Trying to connect to the video hub...");
@@ -309,6 +312,30 @@ void websocketMessageCallback(WebsocketsClient& _client, WebsocketsMessage _mess
       Network.autoConnect = false;
 
 
+  } else if(header == "ret_to_source_0") {
+    info("Writing return_to_source_0 source...");
+    Settings.write(json[1].as<const char*>(), Var_Return_To_Source_Size, Var_Return_To_Source_0);
+
+  } else if(header == "ret_to_source_1") {
+    info("Writing return_to_source_1 source...");
+    Settings.write(json[1].as<const char*>(), Var_Return_To_Source_Size, Var_Return_To_Source_1);
+    
+  } else if(header == "ret_to_source_2") {
+    info("Writing return_to_source_2 source...");
+    Settings.write(json[1].as<const char*>(), Var_Return_To_Source_Size, Var_Return_To_Source_2);
+    
+  } else if(header == "ret_to_source_3") {
+    info("Writing return_to_source_3 source...");
+    Settings.write(json[1].as<const char*>(), Var_Return_To_Source_Size, Var_Return_To_Source_3);
+    
+  } else if(header == "ret_to_source_4") {
+    info("Writing return_to_source_4 source...");
+    Settings.write(json[1].as<const char*>(), Var_Return_To_Source_Size, Var_Return_To_Source_4);
+    
+  } else if(header == "ret_to_source_5") {
+    info("Writing return_to_source_5 source...");
+    Settings.write(json[1].as<const char*>(), Var_Return_To_Source_Size, Var_Return_To_Source_5);
+    
   }
 
 }

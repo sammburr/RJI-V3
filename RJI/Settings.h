@@ -51,6 +51,8 @@
 #define Var_InterfaceSub_Size 4
 #define Var_InterfaceGW_Size 4
 
+#define Var_Return_To_Source_Size 9 // byte 1-9: name of source (null terminated string)
+
 // The offset (starting byte in EEPROM memory) of each var
 #define Var_InterfaceIP 0
 #define Var_WebServerPort Var_InterfaceIP + Var_InterfaceIP_Size
@@ -68,21 +70,28 @@
 #define Var_Eng_4 Var_Eng_3 + Var_Eng_3_Size
 #define Var_Eng_5 Var_Eng_4 + Var_Eng_4_Size
 
-#define Var_Button_0_Source   Var_Eng_5 + Var_Eng_5_Size
-#define Var_Button_1_Source   Var_Button_0_Source + Var_Button_0_Source_Size
-#define Var_Button_2_Source   Var_Button_1_Source + Var_Button_1_Source_Size 
-#define Var_Button_3_Source   Var_Button_2_Source + Var_Button_2_Source_Size 
-#define Var_Button_4_Source   Var_Button_3_Source + Var_Button_3_Source_Size 
-#define Var_Button_5_Source   Var_Button_4_Source + Var_Button_4_Source_Size 
-#define Var_Button_6_Source   Var_Button_5_Source + Var_Button_5_Source_Size 
-#define Var_Button_7_Source   Var_Button_6_Source + Var_Button_6_Source_Size 
-#define Var_Button_8_Source   Var_Button_7_Source + Var_Button_7_Source_Size 
-#define Var_Button_9_Source   Var_Button_8_Source + Var_Button_8_Source_Size 
-#define Var_Button_10_Source  Var_Button_9_Source + Var_Button_9_Source_Size 
-#define Var_Button_11_Source  Var_Button_10_Source + Var_Button_10_Source_Size 
+#define Var_Button_0_Source   Var_Eng_5 + Var_Eng_4_Size
+#define Var_Button_1_Source   Var_Button_0_Source + Var_Return_To_Source_Size
+#define Var_Button_2_Source   Var_Button_1_Source + Var_Return_To_Source_Size 
+#define Var_Button_3_Source   Var_Button_2_Source + Var_Return_To_Source_Size 
+#define Var_Button_4_Source   Var_Button_3_Source + Var_Return_To_Source_Size 
+#define Var_Button_5_Source   Var_Button_4_Source + Var_Return_To_Source_Size 
+#define Var_Button_6_Source   Var_Button_5_Source + Var_Return_To_Source_Size 
+#define Var_Button_7_Source   Var_Button_6_Source + Var_Return_To_Source_Size 
+#define Var_Button_8_Source   Var_Button_7_Source + Var_Return_To_Source_Size 
+#define Var_Button_9_Source   Var_Button_8_Source + Var_Return_To_Source_Size 
+#define Var_Button_10_Source  Var_Button_9_Source + Var_Return_To_Source_Size 
+#define Var_Button_11_Source  Var_Button_10_Source + Var_Return_To_Source_Size 
 
-#define Var_InterfaceSub Var_Button_11_Source + Var_InterfaceSub_Size
-#define Var_InterfaceGW Var_InterfaceSub + Var_InterfaceGW_Size
+#define Var_InterfaceSub Var_Button_11_Source + Var_Return_To_Source_Size
+#define Var_InterfaceGW Var_InterfaceSub + Var_InterfaceSub_Size
+
+#define Var_Return_To_Source_0 Var_InterfaceGW + Var_InterfaceGW_Size
+#define Var_Return_To_Source_1 Var_Return_To_Source_0 + Var_Return_To_Source_Size
+#define Var_Return_To_Source_2 Var_Return_To_Source_1 + Var_Return_To_Source_Size
+#define Var_Return_To_Source_3 Var_Return_To_Source_2 + Var_Return_To_Source_Size
+#define Var_Return_To_Source_4 Var_Return_To_Source_3 + Var_Return_To_Source_Size
+#define Var_Return_To_Source_5 Var_Return_To_Source_4 + Var_Return_To_Source_Size
 
 class Settings {
 
@@ -107,18 +116,25 @@ byte eng_3[Var_Eng_3_Size] =                  {B00000000, B00000000, 3, 0, 'V', 
 byte eng_4[Var_Eng_4_Size] =                  {B00000000, B00000000, 4, 0, 'V', 'i', 's', ' ', '5', '\0', 'x', 'x', 'x', 'x'};
 byte eng_5[Var_Eng_5_Size] =                  {B00000000, B00000000, 5, 0, 'V', 'i', 's', ' ', '6', '\0', 'x', 'x', 'x', 'x'};
 
-uint16_t button_0_source =                    0;
-uint16_t button_1_source =                    1;
-uint16_t button_2_source =                    2;
-uint16_t button_3_source =                    3;
-uint16_t button_4_source =                    4;
-uint16_t button_5_source =                    5;
-uint16_t button_6_source =                    6;
-uint16_t button_7_source =                    7;
-uint16_t button_8_source =                    8;
-uint16_t button_9_source =                    9;
-uint16_t button_10_source =                   10;
-uint16_t button_11_source =                   11;
+byte button_0_source[Var_Return_To_Source_Size] =                    {'I', 'N', ':', '1', '\0', 'x', 'x', 'x', 'x'};
+byte button_1_source[Var_Return_To_Source_Size] =                    {'I', 'N', ':', '2', '\0', 'x', 'x', 'x', 'x'};
+byte button_2_source[Var_Return_To_Source_Size] =                    {'I', 'N', ':', '3', '\0', 'x', 'x', 'x', 'x'};
+byte button_3_source[Var_Return_To_Source_Size] =                    {'I', 'N', ':', '4', '\0', 'x', 'x', 'x', 'x'};
+byte button_4_source[Var_Return_To_Source_Size] =                    {'I', 'N', ':', '5', '\0', 'x', 'x', 'x', 'x'};
+byte button_5_source[Var_Return_To_Source_Size] =                    {'I', 'N', ':', '6', '\0', 'x', 'x', 'x', 'x'};
+byte button_6_source[Var_Return_To_Source_Size] =                    {'I', 'N', ':', '7', '\0', 'x', 'x', 'x', 'x'};
+byte button_7_source[Var_Return_To_Source_Size] =                    {'I', 'N', ':', '8', '\0', 'x', 'x', 'x', 'x'};
+byte button_8_source[Var_Return_To_Source_Size] =                    {'I', 'N', ':', '9', '\0', 'x', 'x', 'x', 'x'};
+byte button_9_source[Var_Return_To_Source_Size] =                    {'P', 'G', 'M', '\0', 'x', 'x', 'x', 'x', 'x'};
+byte button_10_source[Var_Return_To_Source_Size] =                   {'P', 'G', 'M', '\0', 'x', 'x', 'x', 'x', 'x'};
+byte button_11_source[Var_Return_To_Source_Size] =                   {'P', 'G', 'M', '\0', 'x', 'x', 'x', 'x', 'x'};
+
+byte return_to_source_0[Var_Return_To_Source_Size] =      {'P', 'G', 'M', '\0', 'x', 'x', 'x', 'x', 'x'};
+byte return_to_source_1[Var_Return_To_Source_Size] =      {'P', 'V', 'W', '\0', 'x', 'x', 'x', 'x', 'x'};
+byte return_to_source_2[Var_Return_To_Source_Size] =      {'M', 'E', ':', '1', ':', 'P', 'G', 'M', '\0'};
+byte return_to_source_3[Var_Return_To_Source_Size] =      {'I', 'N', ':', '1', '\0', 'x', 'x', 'x', 'x'};
+byte return_to_source_4[Var_Return_To_Source_Size] =      {'P', 'G', 'M', '\0', 'x', 'x', 'x', 'x', 'x'};
+byte return_to_source_5[Var_Return_To_Source_Size] =      {'P', 'G', 'M', '\0', 'x', 'x', 'x', 'x', 'x'};
 
 public:
   Settings() {}
@@ -201,21 +217,28 @@ public:
     write(eng_4, Var_Eng_4_Size, Var_Eng_4);
     write(eng_5, Var_Eng_5_Size, Var_Eng_5);
 
-    write_16bit(button_0_source, Var_Button_0_Source);
-    write_16bit(button_1_source, Var_Button_1_Source);
-    write_16bit(button_2_source, Var_Button_2_Source);
-    write_16bit(button_3_source, Var_Button_3_Source);
-    write_16bit(button_4_source, Var_Button_4_Source);
-    write_16bit(button_5_source, Var_Button_5_Source);
-    write_16bit(button_6_source, Var_Button_6_Source);
-    write_16bit(button_7_source, Var_Button_7_Source);
-    write_16bit(button_8_source, Var_Button_8_Source);
-    write_16bit(button_9_source, Var_Button_9_Source);
-    write_16bit(button_10_source, Var_Button_10_Source);
-    write_16bit(button_11_source, Var_Button_11_Source);
+    write(button_0_source, Var_Return_To_Source_Size, Var_Button_0_Source);
+    write(button_1_source, Var_Return_To_Source_Size, Var_Button_1_Source);
+    write(button_2_source, Var_Return_To_Source_Size, Var_Button_2_Source);
+    write(button_3_source, Var_Return_To_Source_Size, Var_Button_3_Source);
+    write(button_4_source, Var_Return_To_Source_Size, Var_Button_4_Source);
+    write(button_5_source, Var_Return_To_Source_Size, Var_Button_5_Source);
+    write(button_6_source, Var_Return_To_Source_Size, Var_Button_6_Source);
+    write(button_7_source, Var_Return_To_Source_Size, Var_Button_7_Source);
+    write(button_8_source, Var_Return_To_Source_Size, Var_Button_8_Source);
+    write(button_9_source, Var_Return_To_Source_Size, Var_Button_9_Source);
+    write(button_10_source, Var_Return_To_Source_Size, Var_Button_10_Source);
+    write(button_11_source, Var_Return_To_Source_Size, Var_Button_11_Source);
 
     write(interface_sub, Var_InterfaceSub_Size, Var_InterfaceSub);
     write(interface_gw, Var_InterfaceGW_Size, Var_InterfaceGW);
+
+    write(return_to_source_0, Var_Return_To_Source_Size, Var_Return_To_Source_0);
+    write(return_to_source_1, Var_Return_To_Source_Size, Var_Return_To_Source_1);
+    write(return_to_source_2, Var_Return_To_Source_Size, Var_Return_To_Source_2);
+    write(return_to_source_3, Var_Return_To_Source_Size, Var_Return_To_Source_3);
+    write(return_to_source_4, Var_Return_To_Source_Size, Var_Return_To_Source_4);
+    write(return_to_source_5, Var_Return_To_Source_Size, Var_Return_To_Source_5);
   }
 
 
@@ -281,11 +304,20 @@ public:
     info("");
 
     for(byte i=0; i<12; i++) {
-      uint16_t source;
-      read_16bit(source, Var_Button_0_Source + ((int)i*2));
+      char source[9];
+      read(source, 9, Var_Button_0_Source + ((int)i*9));
 
       info("Button ", i, " source: ", source);
 
+    }
+
+    for(byte i=0; i<6; i++) {
+      char name[9];
+      read(name, 9, Var_Return_To_Source_0 + ((int)i*9));
+
+      std::string strName = name;
+
+      info("Return to source ", i, ": ", strName.c_str());
     }
 
     Debug.printSubTitle("SETTINGS END");
@@ -322,6 +354,8 @@ public:
 
     byte dhcpToggle[Var_DHCPToggle_Size];
     read(dhcpToggle, Var_DHCPToggle_Size, Var_DHCPToggle);
+
+
 
 
     // IP
@@ -382,8 +416,8 @@ public:
     doc[7][0] = "buttons";
 
     for(byte i=0; i<12; i++) {
-      uint16_t source;
-      read_16bit(source, Var_Button_0_Source + ((int)i*2));
+      char source[9];
+      read(source, 9, Var_Button_0_Source + ((int)i*9));
 
       doc[7][i+1] = source;
 
@@ -403,6 +437,17 @@ public:
     doc[9][2] = gw[1];
     doc[9][3] = gw[2];
     doc[9][4] = gw[3];
+
+    // Return to sources
+    doc[10][0] = "return-to-sources";
+
+    for(byte i=0; i<6; i++) {
+      char name[9];
+      read(name, 9, Var_Return_To_Source_0 + ((int)i*9));
+
+      std::string strName = name;
+      doc[10][i+1] = strName;
+    }
 
     return doc;
 

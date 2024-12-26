@@ -104,12 +104,12 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         const element = document.getElementById("vh-connection-status");
 
         if(_val) {
-            element.innerHTML = "Connected to VideoHub!";
+            element.innerHTML = "Connected to Carbonite!";
             element.style = "background-color: var(--green-accent); border-color: var(--green-accent);";
 
         }
         else {
-            element.innerHTML = "Not Connected to VideoHub!";
+            element.innerHTML = "Not Connected to Carbonite!";
             element.style = "";
 
         }     
@@ -118,12 +118,19 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
     function readSettings(json) {
 
+        console.log(json);
         json.slice(1).forEach(element => {
 
             // Special case for "engineers"
             if(element[0] == "engineers") {
                 populateEngineers(element);
                 return;
+            }
+
+            // Special case for "return to sources"
+            if(element[0] == "return-to-sources") {
+              populateReturnSources(element);
+              return;
             }
 
             // Special case for "buttons"
@@ -177,6 +184,19 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 	}
 
 
+  function populateReturnSources(sources) {
+
+    const table = document.getElementById("engineers");
+    const rows = table.getElementsByTagName("tr");
+
+    for(let i=0; i<6; i++) {
+      const source = document.getElementById(rows[i+1].id + "_returnsource");
+
+      source.value = sources[i+1];
+    }
+
+  }
+
     function populateEngineers(engineers) {
 
         const table = document.getElementById("engineers");
@@ -197,6 +217,8 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
         }
 
+        updateSwitchLogic();
+
     }
 
 
@@ -210,7 +232,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         for(let i=0; i<12; i++) {
 
             const source = document.getElementById(rows[i+1].id + "_source");
-            source.value = buttons[i+1] + 1;
+            source.value = buttons[i+1];
 
         }   
 
@@ -428,33 +450,39 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
         }
 
+        // Again for return to sources
+        for(let i=0; i<6; i++) {
+
+          message = "[\"ret_to_source_" + i + "\",";
+          const name = document.getElementById(rowsEng[i+1].id + "_returnsource");
+
+          message += "\"" + name.value + "\"]";
+
+          if(message != "") {
+            socket.send(message);
+          }
+        }
+
         // Again for the buttons
         const tableButt = document.getElementById("buttons");
         const rowsButt = tableButt.getElementsByTagName("tr");
 
         for(let i=0; i<12; i++) {
 
-            message = "[\"button_" + i + "\",";
-            const source = document.getElementById(rowsButt[i+1].id + "_source");
-            const error = document.getElementById(rowsButt[i+1].id + "-error");
+          message = "[\"button_" + i + "\",";
+          const source = document.getElementById(rowsButt[i+1].id + "_source");
+          const error = document.getElementById(rowsButt[i+1].id + "-error");
 
 
-            message += "\"" + (source.value - 1) + "\"]";
+          message += "\"" + (source.value) + "\"]";
 
-            if(!isPortValid(source.value)) {
-                // Get error
-                error.innerHTML = "Invalid Button! (0-256)"; 
-                error.style = "color: var(--dark-orange-accent)";
+          if(message != "") {
+              socket.send(message);
+              error.innerHTML = " Sent!";
+              error.style = "color: var(--dark-green-accent)";
+              
 
-            }
-            else {
-                if(message != "") {
-                    socket.send(message);
-                    error.innerHTML = " Sent!";
-                    error.style = "color: var(--dark-green-accent)";
-                }
-
-            }
+          }
 
         }
 
@@ -478,7 +506,6 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         
         return regex.test(name);
     }
-
 
     function isIPValid(ip) {
         console.log(ip);
@@ -584,12 +611,17 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         const eng4t = document.getElementById("eng_4_type");
         const eng5t = document.getElementById("eng_5_type");
 
-        if(eng0t.checked) eng0.innerHTML = "Toggle";
-        if(eng1t.checked) eng1.innerHTML = "Toggle";
-        if(eng2t.checked) eng2.innerHTML = "Toggle";
-        if(eng3t.checked) eng3.innerHTML = "Toggle";
-        if(eng4t.checked) eng4.innerHTML = "Toggle";
-        if(eng5t.checked) eng5.innerHTML = "Toggle";
+        if(eng0t.checked) eng0.innerHTML = "Latch";
+        else eng0.innerHTML = "Toggle";
+        if(eng1t.checked) eng1.innerHTML = "Latch";
+        else eng1.innerHTML = "Toggle";
+        if(eng2t.checked) eng2.innerHTML = "Latch";
+        else eng2.innerHTML = "Toggle";
+        if(eng3t.checked) eng3.innerHTML = "Latch";
+        else eng3.innerHTML = "Toggle";
+        if(eng4t.checked) eng4.innerHTML = "Latch";
+        else eng4.innerHTML = "Toggle";
+        if(eng5t.checked) eng5.innerHTML = "Latch";
 
 
     }
@@ -597,10 +629,10 @@ const char webpageA[] PROGMEM =R"rawLiteral(
     function switchLogic(evt, checkbox) {
         if(evt.currentTarget.innerHTML == "Latch") {
             evt.currentTarget.innerHTML = "Toggle";
-            document.getElementById(checkbox).checked = true;
+            document.getElementById(checkbox).checked = false;
         }
         else {
-            document.getElementById(checkbox).checked = false;
+            document.getElementById(checkbox).checked = true;
             evt.currentTarget.innerHTML = "Latch";
         }
 
@@ -917,31 +949,31 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         <table id="engineers">
 
             <tr>
-                <th  style="display:none" >Mask</th><th>Destination</th> <th>Logic</th> <th></th><th>Name</th>
+                <th  style="display:none" >Mask</th><th>Destination (AUX)</th> <th>Logic</th> <th></th><th>Name</th> <th>Return To Source</th>
             </tr>
     
             <tr id="eng_0">
-                <td  style="display:none" ><input id="eng_0_mask" class="mask"></td><td><input id="eng_0_dest" class="route"></td> <td><button id="eng_0_logic" onclick="switchLogic(event, 'eng_0_type')">Latch</button></td> <td><input style="display: none;" id="eng_0_type" type = "checkbox" class="type"></td><td><input id="eng_0_name" class="name"></td><td><error id="eng_0-error"></error></td>
+                <td  style="display:none" ><input id="eng_0_mask" class="mask"></td><td><input id="eng_0_dest" class="route"></td> <td><button id="eng_0_logic" onclick="switchLogic(event, 'eng_0_type')">Toggle</button></td> <td><input style="display: none;" id="eng_0_type" type = "checkbox" class="type"></td><td><input id="eng_0_name" class="name"></td><td><input id="eng_0_returnsource" class="returntosource"></td><td><error id="eng_0-error"></error></td>
             </tr>
     
             <tr id="eng_1">
-                <td  style="display:none" ><input id="eng_1_mask" class="mask"></td><td><input id="eng_1_dest" class="route"></td> <td><button id="eng_1_logic"  onclick="switchLogic(event, 'eng_1_type')">Latch</button></td> <td><input style="display: none;" id="eng_1_type" type = "checkbox" class="type"></td><td><input id="eng_1_name" class="name"></td><td><error id="eng_1-error"></error></td>
+                <td  style="display:none" ><input id="eng_1_mask" class="mask"></td><td><input id="eng_1_dest" class="route"></td> <td><button id="eng_1_logic"  onclick="switchLogic(event, 'eng_1_type')">Toggle</button></td> <td><input style="display: none;" id="eng_1_type" type = "checkbox" class="type"></td><td><input id="eng_1_name" class="name"></td><td><input id="eng_1_returnsource" class="returntosource"></td><td><error id="eng_1-error"></error></td>
             </tr>
     
             <tr id="eng_2">
-                <td  style="display:none" ><input id="eng_2_mask" class="mask"></td><td><input id="eng_2_dest" class="route"></td> <td><button id="eng_2_logic"  onclick="switchLogic(event, 'eng_2_type')">Latch</button></td> <td><input style="display: none;" id="eng_2_type" type = "checkbox" class="type"></td><td><input id="eng_2_name" class="name"></td><td><error id="eng_2-error"></error></td>
+                <td  style="display:none" ><input id="eng_2_mask" class="mask"></td><td><input id="eng_2_dest" class="route"></td> <td><button id="eng_2_logic"  onclick="switchLogic(event, 'eng_2_type')">Toggle</button></td> <td><input style="display: none;" id="eng_2_type" type = "checkbox" class="type"></td><td><input id="eng_2_name" class="name"></td><td><input id="eng_2_returnsource" class="returntosource"></td><td><error id="eng_2-error"></error></td>
             </tr>
     
             <tr id="eng_3">
-                <td  style="display:none" ><input id="eng_3_mask" class="mask"></td><td><input id="eng_3_dest" class="route"></td> <td><button id="eng_3_logic"  onclick="switchLogic(event, 'eng_3_type')">Latch</button></td> <td><input style="display: none;" id="eng_3_type" type = "checkbox" class="type"></td><td><input id="eng_3_name" class="name"></td><td><error id="eng_3-error"></error></td>
+                <td  style="display:none" ><input id="eng_3_mask" class="mask"></td><td><input id="eng_3_dest" class="route"></td> <td><button id="eng_3_logic"  onclick="switchLogic(event, 'eng_3_type')">Toggle</button></td> <td><input style="display: none;" id="eng_3_type" type = "checkbox" class="type"></td><td><input id="eng_3_name" class="name"></td><td><input id="eng_3_returnsource" class="returntosource"></td><td><error id="eng_3-error"></error></td>
             </tr>
     
             <tr id="eng_4">
-                <td  style="display:none" ><input id="eng_4_mask" class="mask"></td><td><input id="eng_4_dest" class="route"></td> <td><button id="eng_4_logic"  onclick="switchLogic(event, 'eng_4_type')">Latch</button></td> <td><input style="display: none;" id="eng_4_type" type = "checkbox" class="type"></td><td><input id="eng_4_name" class="name"></td><td><error id="eng_4-error"></error></td>
+                <td  style="display:none" ><input id="eng_4_mask" class="mask"></td><td><input id="eng_4_dest" class="route"></td> <td><button id="eng_4_logic"  onclick="switchLogic(event, 'eng_4_type')">Toggle</button></td> <td><input style="display: none;" id="eng_4_type" type = "checkbox" class="type"></td><td><input id="eng_4_name" class="name"></td><td><input id="eng_4_returnsource" class="returntosource"></td><td><error id="eng_4-error"></error></td>
             </tr>
     
             <tr id="eng_5">
-                <td  style="display:none" ><input id="eng_5_mask" class="mask"></td><td><input id="eng_5_dest" class="route"></td> <td><button id="eng_5_logic"  onclick="switchLogic(event, 'eng_5_type')">Latch</button></td> <td><input style="display: none;" id="eng_5_type" type = "checkbox" class="type"></td><td><input id="eng_5_name" class="name"></td><td><error id="eng_5-error"></error></td>
+                <td  style="display:none" ><input id="eng_5_mask" class="mask"></td><td><input id="eng_5_dest" class="route"></td> <td><button id="eng_5_logic"  onclick="switchLogic(event, 'eng_5_type')">Toggle</button></td> <td><input style="display: none;" id="eng_5_type" type = "checkbox" class="type"></td><td><input id="eng_5_name" class="name"></td><td><input id="eng_5_returnsource" class="returntosource"></td><td><error id="eng_5-error"></error></td>
             </tr>
     
         </table>
@@ -1123,16 +1155,19 @@ public:
 
   }
 
+  bool didJustNoop = false;
   void pollVideoHub() {
-    if(videoHubRouter->available()) {
+    int currentMillis = millis();
+
+    // if(videoHubRouter->available()) {
       
-      char c = videoHubRouter->read();
-        VideoHub.parse(c);
-        //Serial.print(c); // <- !!!uncomment for videohub messages!!!
+    //   char c = videoHubRouter->read();
+    //   VideoHub.parse(c);
+    //   Serial.print(c); // <- !!!uncomment for videohub messages!!!
 
-    }
+    // }
 
-    if (millis() % 1000 == 0) {
+    if (currentMillis % 1000 == 0) {
       if(!videoHubRouter->connected()) {
         sendMessage(webSocketClient, "[\"vh-stat\", false]");
         isConnectedToVH = false;
@@ -1142,13 +1177,34 @@ public:
       }
     }
 
+    // send no op every 10 seconds to persist connection
+    if (currentMillis % 10000 == 0) {
+      if(!didJustNoop && videoHubRouter->connected()) {
+        didJustNoop = true;
+        sendMessageToVideoHub("NOOP\r\n");
+      }
+    }
+
+    if (currentMillis % 10000 != 0) {
+      didJustNoop = false;
+    }
+
   }
 
+  // TODO REFACTOR
   void sendMessageToVideoHub(const char* _message) {
     if(isConnectedToVH) {
       info("Sending message to VideoHub:\n", _message);
-      videoHubRouter->write(_message);\
-      VideoHub.expected_resp ++;
+      size_t bytes_written = videoHubRouter->write(_message);
+      
+      if(bytes_written == 0) {
+        // failed to send a message
+        info("Failed to send a message");
+        info("Reconnecting...");
+        reconnectToVideoHub(videohub_ip, videohub_port);
+      }
+      
+      //VideoHub.expected_resp ++;
       info("End of message");
     }
     else {
@@ -1234,7 +1290,9 @@ private:
   byte mac[6];
 
   EthernetServer* webServer;
+  // TODO: REMOVE
   EthernetClient* videoHubRouter;
+  EthernetClient* tcpClient;
 
   WebsocketsServer* webSocketServer;
   MessageHandle messageHandle;

@@ -65,18 +65,26 @@ public:
         // This button belongs to this engineer
         // if the _state is true (button down), eitherway we send it to the router
         if(_state) {
-          // Read the source from settings
-          uint16_t source;
-          Settings.read_16bit(source, Var_Button_0_Source + ((int)(_pin - 29)*2));
 
-          VideoHub.lastSource = *dest;
-          VideoHub.lastDest = source;
+          //TODO: REFACTOR
+          //Read the source from settings
+          char source[Var_Return_To_Source_Size];
+          Settings.read(source, Var_Return_To_Source_Size, Var_Button_0_Source + ((int)(_pin - 29)*Var_Return_To_Source_Size));
 
-          std::string msg = "VIDEO OUTPUT ROUTING:\n";
+          //VideoHub.lastSource = *dest;
+          //VideoHub.lastDest = source;
+
+          // std::string msg = "VIDEO OUTPUT ROUTING:\n";
+          // msg += std::to_string(*dest);
+          // msg += " ";
+          // msg += std::to_string(source);
+          // msg += "\n\n";
+
+          std::string msg = "XPT AUX:";
           msg += std::to_string(*dest);
-          msg += " ";
-          msg += std::to_string(source);
-          msg += "\n\n";
+          msg += ":";
+          msg += source;
+          msg += "\r\n";
 
           //info("Setting engineer: ", name, "(", *dest ,")", " to source: ", source);
           Network.sendMessageToVideoHub(msg.c_str());
@@ -95,21 +103,29 @@ public:
           lists[i].remove(_pin - 29);
 
           // Now if the list is empty, route to the current mapping set by the router
-          uint16_t source;
-          Settings.read_16bit(source, Var_Button_0_Source + ((int)(lists[i].front())*2));
-
+          char source[Var_Return_To_Source_Size];
+          Settings.read(source, Var_Return_To_Source_Size, Var_Button_0_Source + ((int)(lists[i].front())*Var_Return_To_Source_Size));
+    
           if(lists[i].empty()) {
-            source = VideoHub.routingPairs[*dest];
+            // Return to source value
+            
+            Settings.read(source, Var_Return_To_Source_Size, Var_Return_To_Source_0 + ((int)(i * Var_Return_To_Source_Size)));
           }
 
-          VideoHub.lastSource = *dest;
-          VideoHub.lastDest = source;
+          //VideoHub.lastSource = *dest;
+          //VideoHub.lastDest = source;
 
-          std::string msg = "VIDEO OUTPUT ROUTING:\n";
+          // std::string msg = "VIDEO OUTPUT ROUTING:\n";
+          // msg += std::to_string(*dest);
+          // msg += " ";
+          // msg += std::to_string(source);
+          // msg += "\n\n";
+
+          std::string msg = "XPT AUX:";
           msg += std::to_string(*dest);
-          msg += " ";
-          msg += std::to_string(source);
-          msg += "\n\n";
+          msg += ":";
+          msg += source;
+          msg += "\r\n";
 
           //info("Setting engineer: ", name, "(", *dest ,")", " to source: ", source);
           Network.sendMessageToVideoHub(msg.c_str());
