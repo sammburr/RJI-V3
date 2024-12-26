@@ -611,17 +611,18 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         const eng4t = document.getElementById("eng_4_type");
         const eng5t = document.getElementById("eng_5_type");
 
-        if(eng0t.checked) eng0.innerHTML = "Latch";
-        else eng0.innerHTML = "Toggle";
-        if(eng1t.checked) eng1.innerHTML = "Latch";
-        else eng1.innerHTML = "Toggle";
-        if(eng2t.checked) eng2.innerHTML = "Latch";
-        else eng2.innerHTML = "Toggle";
-        if(eng3t.checked) eng3.innerHTML = "Latch";
-        else eng3.innerHTML = "Toggle";
-        if(eng4t.checked) eng4.innerHTML = "Latch";
-        else eng4.innerHTML = "Toggle";
-        if(eng5t.checked) eng5.innerHTML = "Latch";
+        if(eng0t.checked) eng0.innerHTML = "Toggle";
+        else eng0.innerHTML = "Latch";
+        if(eng1t.checked) eng1.innerHTML = "Toggle";
+        else eng1.innerHTML = "Latch";
+        if(eng2t.checked) eng2.innerHTML = "Toggle";
+        else eng2.innerHTML = "Latch";
+        if(eng3t.checked) eng3.innerHTML = "Toggle";
+        else eng3.innerHTML = "Latch";
+        if(eng4t.checked) eng4.innerHTML = "Toggle";
+        else eng4.innerHTML = "Latch";
+        if(eng5t.checked) eng5.innerHTML = "Toggle";
+        else eng5.innerHTML = "Latch";
 
 
     }
@@ -629,10 +630,10 @@ const char webpageA[] PROGMEM =R"rawLiteral(
     function switchLogic(evt, checkbox) {
         if(evt.currentTarget.innerHTML == "Latch") {
             evt.currentTarget.innerHTML = "Toggle";
-            document.getElementById(checkbox).checked = false;
+            document.getElementById(checkbox).checked = true;
         }
         else {
-            document.getElementById(checkbox).checked = true;
+            document.getElementById(checkbox).checked = false;
             evt.currentTarget.innerHTML = "Latch";
         }
 
