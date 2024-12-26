@@ -174,11 +174,11 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 	    var button = document.getElementById(id);
 	    if(state) {
 
-		button.style = "background: var(--green-accent);";
+		button.style = "background: var(--green-accent); cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none;";
 
 	    }
 	    else {
-		button.style = "background: inherit";
+		button.style = "background: inherit; cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none;";
 	    }
 
 	}
@@ -710,11 +710,15 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
     }
 
+    var last_gpi_id;
+
     function gpiDown(id) {
 
       var message = "[\"gpi_down\",";
       message += id;
       message += "]";
+
+      last_gpi_id = id;
 
       socket.send(message);
     }
@@ -723,7 +727,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
     function gpiUp(id) {
 
       var message = "[\"gpi_up\",";
-      message += id;
+      message += last_gpi_id;
       message += "]";
 
       socket.send(message);
@@ -942,18 +946,18 @@ const char webpageA[] PROGMEM =R"rawLiteral(
     <span id="vh-connection-status">Not Connected to VideoHub!</span>
 
     <div class="grid-cont">
-        <div id="gpi-1" class="square" onmousedown="gpiDown(1)" onmouseup="gpiUp(1)">GPI 1</div>
-        <div id="gpi-2" class="square" onmousedown="gpiDown(2)" onmouseup="gpiUp(2)">GPI 2</div>    
-        <div id="gpi-3" class="square" onmousedown="gpiDown(3)" onmouseup="gpiUp(3)">GPI 3</div>
-        <div id="gpi-4" class="square" onmousedown="gpiDown(4)" onmouseup="gpiUp(4)">GPI 4</div>  
-        <div id="gpi-5" class="square" onmousedown="gpiDown(5)" onmouseup="gpiUp(5)">GPI 5</div>
-        <div id="gpi-6" class="square" onmousedown="gpiDown(6)" onmouseup="gpiUp(6)">GPI 6</div>  
-        <div id="gpi-7" class="square" onmousedown="gpiDown(7)" onmouseup="gpiUp(7)">GPI 7</div>
-        <div id="gpi-8" class="square" onmousedown="gpiDown(8)" onmouseup="gpiUp(8)">GPI 8</div>  
-        <div id="gpi-9" class="square" onmousedown="gpiDown(9)" onmouseup="gpiUp(9)">GPI 9</div>
-        <div id="gpi-10" class="square" onmousedown="gpiDown(10)" onmouseup="gpiUp(10)">GPI 10</div>  
-        <div id="gpi-11" class="square" onmousedown="gpiDown(11)" onmouseup="gpiUp(11)">GPI 11</div>
-        <div id="gpi-12" class="square" onmousedown="gpiDown(12)" onmouseup="gpiUp(12)">GPI 12</div>  
+        <div id="gpi-1" class="square" onmousedown="gpiDown(1)" onmouseup="gpiUp(1)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 1</div>
+        <div id="gpi-2" class="square" onmousedown="gpiDown(2)" onmouseup="gpiUp(2)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 2</div>    
+        <div id="gpi-3" class="square" onmousedown="gpiDown(3)" onmouseup="gpiUp(3)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 3</div>
+        <div id="gpi-4" class="square" onmousedown="gpiDown(4)" onmouseup="gpiUp(4)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 4</div>  
+        <div id="gpi-5" class="square" onmousedown="gpiDown(5)" onmouseup="gpiUp(5)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 5</div>
+        <div id="gpi-6" class="square" onmousedown="gpiDown(6)" onmouseup="gpiUp(6)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 6</div>  
+        <div id="gpi-7" class="square" onmousedown="gpiDown(7)" onmouseup="gpiUp(7)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 7</div>
+        <div id="gpi-8" class="square" onmousedown="gpiDown(8)" onmouseup="gpiUp(8)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 8</div>  
+        <div id="gpi-9" class="square" onmousedown="gpiDown(9)" onmouseup="gpiUp(9)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 9</div>
+        <div id="gpi-10" class="square" onmousedown="gpiDown(10)" onmouseup="gpiUp(10)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 10</div>  
+        <div id="gpi-11" class="square" onmousedown="gpiDown(11)" onmouseup="gpiUp(11)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 11</div>
+        <div id="gpi-12" class="square" onmousedown="gpiDown(12)" onmouseup="gpiUp(12)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 12</div>  
     </div>
 
 
