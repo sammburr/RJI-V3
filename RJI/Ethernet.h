@@ -211,7 +211,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
             const name = document.getElementById(rows[i+1].id + "_name");
 
             mask.value = parseInt(engineers[i+1][0]).toString(2);
-            dest.value = engineers[i+1][1] + 1;
+            dest.value = engineers[i+1][1];
             type.checked = engineers[i+1][2];
             name.value = engineers[i+1][3];
 
@@ -429,7 +429,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
             falsifiable = falsifiable || !isValidName(name.value);
 
             message += parseInt(mask.value, 2) + ",";
-            message += parseInt(dest.value) - 1 + ",";
+            message += parseInt(dest.value) + ",";
             message += type.checked + ",";
             message += "\"" + name.value + "\"]";
 
