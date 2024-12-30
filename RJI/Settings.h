@@ -109,12 +109,12 @@ uint16_t videohub_port =                      7788;
 byte reset_flag[Var_ResetInterface_Size] =    {0};
 byte dhcp_toggle[Var_DHCPToggle_Size] =       {0};
 
-byte eng_0[Var_Eng_0_Size] =                  {B00000000, B00001111, 0, 1, 'V', 'i', 's', ' ', '1', '\0', 'x', 'x', 'x', 'x'};
-byte eng_1[Var_Eng_1_Size] =                  {B00000000, B11110000, 1, 1, 'V', 'i', 's', ' ', '2', '\0', 'x', 'x', 'x', 'x'};
-byte eng_2[Var_Eng_2_Size] =                  {B00001111, B00000000, 2, 1, 'V', 'i', 's', ' ', '3', '\0', 'x', 'x', 'x', 'x'};
-byte eng_3[Var_Eng_3_Size] =                  {B00000000, B00000000, 3, 0, 'V', 'i', 's', ' ', '4', '\0', 'x', 'x', 'x', 'x'};
-byte eng_4[Var_Eng_4_Size] =                  {B00000000, B00000000, 4, 0, 'V', 'i', 's', ' ', '5', '\0', 'x', 'x', 'x', 'x'};
-byte eng_5[Var_Eng_5_Size] =                  {B00000000, B00000000, 5, 0, 'V', 'i', 's', ' ', '6', '\0', 'x', 'x', 'x', 'x'};
+byte eng_0[Var_Eng_0_Size] =                  {B00000000, B00001111, 1, 1, 'V', 'i', 's', ' ', '1', '\0', 'x', 'x', 'x', 'x'};
+byte eng_1[Var_Eng_1_Size] =                  {B00000000, B11110000, 2, 1, 'V', 'i', 's', ' ', '2', '\0', 'x', 'x', 'x', 'x'};
+byte eng_2[Var_Eng_2_Size] =                  {B00001111, B00000000, 3, 1, 'V', 'i', 's', ' ', '3', '\0', 'x', 'x', 'x', 'x'};
+byte eng_3[Var_Eng_3_Size] =                  {B00000000, B00000000, 4, 0, 'V', 'i', 's', ' ', '4', '\0', 'x', 'x', 'x', 'x'};
+byte eng_4[Var_Eng_4_Size] =                  {B00000000, B00000000, 5, 0, 'V', 'i', 's', ' ', '5', '\0', 'x', 'x', 'x', 'x'};
+byte eng_5[Var_Eng_5_Size] =                  {B00000000, B00000000, 6, 0, 'V', 'i', 's', ' ', '6', '\0', 'x', 'x', 'x', 'x'};
 
 byte button_0_source[Var_Return_To_Source_Size] =                    {'I', 'N', ':', '1', '\0', 'x', 'x', 'x', 'x'};
 byte button_1_source[Var_Return_To_Source_Size] =                    {'I', 'N', ':', '2', '\0', 'x', 'x', 'x', 'x'};
@@ -125,16 +125,16 @@ byte button_5_source[Var_Return_To_Source_Size] =                    {'I', 'N', 
 byte button_6_source[Var_Return_To_Source_Size] =                    {'I', 'N', ':', '7', '\0', 'x', 'x', 'x', 'x'};
 byte button_7_source[Var_Return_To_Source_Size] =                    {'I', 'N', ':', '8', '\0', 'x', 'x', 'x', 'x'};
 byte button_8_source[Var_Return_To_Source_Size] =                    {'I', 'N', ':', '9', '\0', 'x', 'x', 'x', 'x'};
-byte button_9_source[Var_Return_To_Source_Size] =                    {'P', 'G', 'M', '\0', 'x', 'x', 'x', 'x', 'x'};
-byte button_10_source[Var_Return_To_Source_Size] =                   {'P', 'G', 'M', '\0', 'x', 'x', 'x', 'x', 'x'};
-byte button_11_source[Var_Return_To_Source_Size] =                   {'P', 'G', 'M', '\0', 'x', 'x', 'x', 'x', 'x'};
+byte button_9_source[Var_Return_To_Source_Size] =                    {'M', 'E', ':', '1', ':', 'P', 'G', 'M', '\0'};
+byte button_10_source[Var_Return_To_Source_Size] =                   {'M', 'E', ':', '2', ':', 'P', 'G', 'M', '\0'};
+byte button_11_source[Var_Return_To_Source_Size] =                   {'M', 'E', ':', '3', ':', 'P', 'G', 'M', '\0'};
 
-byte return_to_source_0[Var_Return_To_Source_Size] =      {'P', 'G', 'M', '\0', 'x', 'x', 'x', 'x', 'x'};
-byte return_to_source_1[Var_Return_To_Source_Size] =      {'P', 'V', 'W', '\0', 'x', 'x', 'x', 'x', 'x'};
-byte return_to_source_2[Var_Return_To_Source_Size] =      {'M', 'E', ':', '1', ':', 'P', 'G', 'M', '\0'};
-byte return_to_source_3[Var_Return_To_Source_Size] =      {'I', 'N', ':', '1', '\0', 'x', 'x', 'x', 'x'};
-byte return_to_source_4[Var_Return_To_Source_Size] =      {'P', 'G', 'M', '\0', 'x', 'x', 'x', 'x', 'x'};
-byte return_to_source_5[Var_Return_To_Source_Size] =      {'P', 'G', 'M', '\0', 'x', 'x', 'x', 'x', 'x'};
+byte return_to_source_0[Var_Return_To_Source_Size] =      {'M', 'E', ':', '1', ':', 'P', 'V', '\0', 'x'};
+byte return_to_source_1[Var_Return_To_Source_Size] =      {'M', 'E', ':', '1', ':', 'P', 'G', 'M', '\0'};
+byte return_to_source_2[Var_Return_To_Source_Size] =      {'M', 'E', ':', '2', ':', 'P', 'V', '\0', 'x'};
+byte return_to_source_3[Var_Return_To_Source_Size] =      {'M', 'E', ':', '2', ':', 'P', 'G', 'M', '\0'};
+byte return_to_source_4[Var_Return_To_Source_Size] =      {'M', 'E', ':', '3', ':', 'P', 'V', '\0', 'x'};
+byte return_to_source_5[Var_Return_To_Source_Size] =      {'M', 'E', ':', '3', ':', 'P', 'G', 'M', '\0'};
 
 public:
   Settings() {}
