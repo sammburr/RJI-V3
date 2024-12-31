@@ -178,7 +178,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
 	    }
 	    else {
-		button.style = "background: var(--light-gray-accent); cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none;";
+		button.style = "class: square; cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none;";
 	    }
 
 	}
@@ -243,7 +243,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         { id:"interface-ip", input_type:"ip",  label:"Interface IP ", error_message:" Not a valid IP"},
         { id:"interface-gw", input_type:"ip",  label:"Interface Gateway IP ", error_message:" Not a valid IP"},
         { id:"interface-sub", input_type:"ip",  label:"Interface Subnet Mask ", error_message:" Not a valid Subnet Mask"},
-        { id:"interface-dhcp", input_type:"bool", label:"Toggle DHCP ", error_message:" ???Thats not good???" },
+        { id:"interface-dhcp", input_type:"bool", label:"DHCP ", error_message:" ???Thats not good???" },
         { id:"videohub-ip", input_type:"ip", label:"Carbonite IP ", error_message:" Not a valid IP"},
         { id:"videohub-port", input_type:"port", label:"Carbonite Port ", error_message:" Not a valid port number"}
     ];
@@ -748,7 +748,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         --dark-blue-accent: #BAD5DC;
         --orange-accent: #F59D46;
         --dark-orange-accent: #ff8000;
-        --light-gray-accent: #D3D3D3;
+        --light-gray-accent: #eeeeee;
 
     }
 
@@ -812,12 +812,17 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
     .square {
         background-color: var(--light-gray-accent);
-        padding: 20px;
+        padding: 15px;
         text-align: center;
         margin: 2px;
-        border-radius: 10px;
+        border-radius: 7px;
+        font-size: 16pt;
         font-weight: bold;
 
+    }
+
+    .square:hover {
+      background-color: var(--dark-blue-accent);
     }
 
     /* Style the tab */
@@ -827,7 +832,6 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         background-color: #f1f1f1;
 
     }
-
 
     #reboot-button {
         background-color: var(--orange-accent);
@@ -962,8 +966,8 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
 
     <div class="tab">
-        <button id="default-tab" class="tablinks" onclick="changeTab(event, 'London')">Engineers</button>
-        <button class="tablinks" onclick="changeTab(event, 'Paris')">Buttons</button>
+        <button id="default-tab" class="tablinks active" onclick="changeTab(event, 'London')">Position</button>
+        <button class="tablinks" onclick="changeTab(event, 'Paris')">GPI Patch</button>
         <button class="tablinks" onclick="changeTab(event, 'Tokyo')">Network</button>
     </div>
     
@@ -1008,7 +1012,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         <table id="buttons">
 
             <tr>
-                <th>Button</th><th>Source</th><th>Engineer</th>
+                <th>GPI</th><th>Source</th><th>Position</th>
             </tr>
 
             <tr id="button_0">

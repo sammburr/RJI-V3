@@ -357,7 +357,6 @@ public:
 
 
 
-
     // IP
     doc[1][0] = "interface-ip"; // This needs to be the same `id` as the inputObject in the webpage!!
     doc[1][1] = ip[0];

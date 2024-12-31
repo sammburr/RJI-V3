@@ -54,8 +54,8 @@ void setup() {
     // Start with DHCP
     Network.startEthernet();
     // Reset dhcp flag
-    dhcpFlag[0] = 0;
-    Settings.write(dhcpFlag, Var_DHCPToggle_Size, Var_DHCPToggle);
+    // dhcpFlag[0] = 0;
+    // Settings.write(dhcpFlag, Var_DHCPToggle_Size, Var_DHCPToggle);
     // Write the new ip to settings
     ip[0] = Network.ip[0];
     ip[1] = Network.ip[1];
