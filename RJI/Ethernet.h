@@ -28,7 +28,7 @@ typedef void (*MessageHandle)(WebsocketsClient&, WebsocketsMessage);
 
 const char webpageA[] PROGMEM =R"rawLiteral(
 <head>
-
+    <title>GPI-12</title>
     <script>
 
     var socket = new WebSocket("ws://" + window.location.hostname + ":8080"); // This starts up the socket connection automagically.
@@ -86,31 +86,29 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
 
     function setConnectionStatus(_val) {
-        const element = document.getElementById("ws-connection-status");
+        
 
         if(_val) {
-            element.innerHTML = "Connected";
-            element.style = "background-color: var(--green-accent); border-color: var(--green-accent);";
+
+            overlay2.classList.remove("active");
 
         }
         else {
-            element.innerHTML = "Not Connected";
-            element.style = "";
+
+            overlay2.classList.add("active");
             setVideoHubConnectionStatus(_val);
         }        
     }
 
     function setVideoHubConnectionStatus(_val) {
-        const element = document.getElementById("vh-connection-status");
-
+        
         if(_val) {
-            element.innerHTML = "Connected to Carbonite";
-            element.style = "background-color: var(--green-accent); border-color: var(--green-accent);";
 
+            overlay1.classList.remove("active");
         }
         else {
-            element.innerHTML = "Not Connected to Carbonite";
-            element.style = "";
+
+            overlay1.classList.add("active");
 
         }     
 
@@ -290,48 +288,45 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
         });
 
-        var button = document.createElement("button");
-        button.innerHTML = "submit";
-        button.onclick = function(){submitSettings()};
-        document.body.appendChild(button);
+        // var button = document.createElement("button");
+        // button.innerHTML = "Submit";
+        // button.onclick = function(){submitSettings()};
+        // document.body.appendChild(button);
 
-        button = document.createElement("button");
-        button.innerHTML = "reboot";
-        button.onclick = function(){sendReset()};
-        button.id = "reboot-button";
-        document.body.appendChild(button);
+        // button = document.createElement("button");
+        // button.innerHTML = "Reboot";
+        // button.onclick = function(){sendReset()};
+        // button.id = "reboot-button";
+        // document.body.appendChild(button);
 
-        var div = document.createElement("div");
+        // var div = document.createElement("div");
 
-        button = document.createElement("button");
-        button.innerHTML = "connect to carbonite";
-        button.onclick = function(){sendConnectToVideohub()};
-        button.id = "retry-video-button";
+   
 
-        div.appendChild(button);
-        div.appendChild(document.createElement("br"));
-        div.appendChild(document.createElement("br"));
-        div.appendChild(document.createElement("br"));
+        // div.appendChild(button);
+        // div.appendChild(document.createElement("br"));
+        // div.appendChild(document.createElement("br"));
+        // div.appendChild(document.createElement("br"));
 
-        var span = document.createElement("span");
-        span.style.display = "none";
-        span.id = "auto-connect-span";
+        // var span = document.createElement("span");
+        // span.style.display = "none";
+        // span.id = "auto-connect-span";
 
-        var label = document.createElement("label");
-        label.innerHTML = "auto connect";
+        // var label = document.createElement("label");
+        // label.innerHTML = "auto connect";
 
 
-        button = document.createElement("input");
-        button.type = "checkbox";
-        button.id = "auto-connect";
-        button.checked = true;
+        // button = document.createElement("input");
+        // button.type = "checkbox";
+        // button.id = "auto-connect";
+        // button.checked = true;
 
-        span.appendChild(label);
-        span.appendChild(button);
+        // span.appendChild(label);
+        // span.appendChild(button);
 
-        div.appendChild(span);
+        // div.appendChild(span);
 
-        document.body.appendChild(div);
+        // document.body.appendChild(div);
         
 
     }
@@ -740,7 +735,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
     /* Color Scheme */
     :root {
-        --bg-col: #FFFFFA;
+        --bg-col: #d9d9d9;
         --type-col: #2F2F2F;
         --green-accent: #D1EFB5;
         --dark-green-accent: #587c36;
@@ -828,8 +823,8 @@ const char webpageA[] PROGMEM =R"rawLiteral(
     /* Style the tab */
     .tab {
         overflow: hidden;
-        border: 1px solid #ccc;
-        background-color: #f1f1f1;
+        border: 0px;
+        
 
     }
 
@@ -846,10 +841,9 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
 
     input {
-        border: none;
-        outline: none;
-        border-bottom: solid 1px #ccc;
+        border: solid 1px #e7e6e6;
     }
+
 
 
     button {
@@ -884,8 +878,6 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         display: none;
         padding: 6px 12px;
         border: 1px solid #ccc;
-        border-top: none;
-
     }
 
 
@@ -927,6 +919,52 @@ const char webpageA[] PROGMEM =R"rawLiteral(
       font-weight: bold;
     }
 
+
+
+
+
+
+.container {
+    position: relative;
+    width: 100%;
+    padding: 5px;
+  }
+  
+  .content {
+    padding: 0px;
+  }
+  
+  .overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    visibility: hidden;
+    opacity: 0;
+    transition: visibility 0s, opacity 0.3s ease-in-out;
+  }
+  
+  .overlay.active {
+    visibility: visible;
+    opacity: 1;
+  }
+  
+  .message {
+    padding: 10px 20px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 8px;
+  }
+  
+
+
     </style>
 
 </head>
@@ -946,132 +984,171 @@ const char webpageA[] PROGMEM =R"rawLiteral(
               </tr>
             </thead>
             </table>
-    <span id="ws-connection-status">Not Connected</span>
-    <span id="vh-connection-status">Not Connected to VideoHub</span>
-
-    <div class="grid-cont">
-        <div id="gpi-1" class="square" onmousedown="gpiDown(1)" onmouseup="gpiUp(1)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 1</div>
-        <div id="gpi-2" class="square" onmousedown="gpiDown(2)" onmouseup="gpiUp(2)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 2</div>    
-        <div id="gpi-3" class="square" onmousedown="gpiDown(3)" onmouseup="gpiUp(3)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 3</div>
-        <div id="gpi-4" class="square" onmousedown="gpiDown(4)" onmouseup="gpiUp(4)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 4</div>  
-        <div id="gpi-5" class="square" onmousedown="gpiDown(5)" onmouseup="gpiUp(5)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 5</div>
-        <div id="gpi-6" class="square" onmousedown="gpiDown(6)" onmouseup="gpiUp(6)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 6</div>  
-        <div id="gpi-7" class="square" onmousedown="gpiDown(7)" onmouseup="gpiUp(7)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 7</div>
-        <div id="gpi-8" class="square" onmousedown="gpiDown(8)" onmouseup="gpiUp(8)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 8</div>  
-        <div id="gpi-9" class="square" onmousedown="gpiDown(9)" onmouseup="gpiUp(9)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 9</div>
-        <div id="gpi-10" class="square" onmousedown="gpiDown(10)" onmouseup="gpiUp(10)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 10</div>  
-        <div id="gpi-11" class="square" onmousedown="gpiDown(11)" onmouseup="gpiUp(11)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 11</div>
-        <div id="gpi-12" class="square" onmousedown="gpiDown(12)" onmouseup="gpiUp(12)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 12</div>  
-    </div>
 
 
-    <div class="tab">
-        <button id="default-tab" class="tablinks active" onclick="changeTab(event, 'London')">Position</button>
-        <button class="tablinks" onclick="changeTab(event, 'Paris')">GPI Patch</button>
-        <button class="tablinks" onclick="changeTab(event, 'Tokyo')">Network</button>
-    </div>
-    
+   
 
-    <div id="London" class="tabcontent" style="display: block">
-        <table id="engineers">
+  
+    <div class="container">
+        <div class="content">
+        <div class="grid-cont">
+            <div id="gpi-1" class="square" onmousedown="gpiDown(1)" onmouseup="gpiUp(1)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 1</div>
+            <div id="gpi-2" class="square" onmousedown="gpiDown(2)" onmouseup="gpiUp(2)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 2</div>    
+            <div id="gpi-3" class="square" onmousedown="gpiDown(3)" onmouseup="gpiUp(3)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 3</div>
+            <div id="gpi-4" class="square" onmousedown="gpiDown(4)" onmouseup="gpiUp(4)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 4</div>  
+            <div id="gpi-5" class="square" onmousedown="gpiDown(5)" onmouseup="gpiUp(5)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 5</div>
+            <div id="gpi-6" class="square" onmousedown="gpiDown(6)" onmouseup="gpiUp(6)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 6</div>  
+            <div id="gpi-7" class="square" onmousedown="gpiDown(7)" onmouseup="gpiUp(7)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 7</div>
+            <div id="gpi-8" class="square" onmousedown="gpiDown(8)" onmouseup="gpiUp(8)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 8</div>  
+            <div id="gpi-9" class="square" onmousedown="gpiDown(9)" onmouseup="gpiUp(9)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 9</div>
+            <div id="gpi-10" class="square" onmousedown="gpiDown(10)" onmouseup="gpiUp(10)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 10</div>  
+            <div id="gpi-11" class="square" onmousedown="gpiDown(11)" onmouseup="gpiUp(11)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 11</div>
+            <div id="gpi-12" class="square" onmousedown="gpiDown(12)" onmouseup="gpiUp(12)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 12</div>  
+        </div>
+        </div>
+        <div class="overlay" id="overlay1">
+          <button id="retry-video-button" onclick="sendConnectToVideohub()">Reconnect</button>
+        </div>
+      </div>
 
-            <tr>
-                <th  style="display:none" >Mask</th><th>Destination (AUX)</th> <th>Logic</th> <th></th><th>Name</th> <th>Return To Source</th>
-            </tr>
-    
-            <tr id="eng_0">
-                <td  style="display:none" ><input id="eng_0_mask" class="mask"></td><td><input id="eng_0_dest" class="route"></td> <td><button id="eng_0_logic" onclick="switchLogic(event, 'eng_0_type')">Toggle</button></td> <td><input style="display: none;" id="eng_0_type" type = "checkbox" class="type"></td><td><input id="eng_0_name" class="name"></td><td><input id="eng_0_returnsource" class="returntosource"></td><td><error id="eng_0-error"></error></td>
-            </tr>
-    
-            <tr id="eng_1">
-                <td  style="display:none" ><input id="eng_1_mask" class="mask"></td><td><input id="eng_1_dest" class="route"></td> <td><button id="eng_1_logic"  onclick="switchLogic(event, 'eng_1_type')">Toggle</button></td> <td><input style="display: none;" id="eng_1_type" type = "checkbox" class="type"></td><td><input id="eng_1_name" class="name"></td><td><input id="eng_1_returnsource" class="returntosource"></td><td><error id="eng_1-error"></error></td>
-            </tr>
-    
-            <tr id="eng_2">
-                <td  style="display:none" ><input id="eng_2_mask" class="mask"></td><td><input id="eng_2_dest" class="route"></td> <td><button id="eng_2_logic"  onclick="switchLogic(event, 'eng_2_type')">Toggle</button></td> <td><input style="display: none;" id="eng_2_type" type = "checkbox" class="type"></td><td><input id="eng_2_name" class="name"></td><td><input id="eng_2_returnsource" class="returntosource"></td><td><error id="eng_2-error"></error></td>
-            </tr>
-    
-            <tr id="eng_3">
-                <td  style="display:none" ><input id="eng_3_mask" class="mask"></td><td><input id="eng_3_dest" class="route"></td> <td><button id="eng_3_logic"  onclick="switchLogic(event, 'eng_3_type')">Toggle</button></td> <td><input style="display: none;" id="eng_3_type" type = "checkbox" class="type"></td><td><input id="eng_3_name" class="name"></td><td><input id="eng_3_returnsource" class="returntosource"></td><td><error id="eng_3-error"></error></td>
-            </tr>
-    
-            <tr id="eng_4">
-                <td  style="display:none" ><input id="eng_4_mask" class="mask"></td><td><input id="eng_4_dest" class="route"></td> <td><button id="eng_4_logic"  onclick="switchLogic(event, 'eng_4_type')">Toggle</button></td> <td><input style="display: none;" id="eng_4_type" type = "checkbox" class="type"></td><td><input id="eng_4_name" class="name"></td><td><input id="eng_4_returnsource" class="returntosource"></td><td><error id="eng_4-error"></error></td>
-            </tr>
-    
-            <tr id="eng_5">
-                <td  style="display:none" ><input id="eng_5_mask" class="mask"></td><td><input id="eng_5_dest" class="route"></td> <td><button id="eng_5_logic"  onclick="switchLogic(event, 'eng_5_type')">Toggle</button></td> <td><input style="display: none;" id="eng_5_type" type = "checkbox" class="type"></td><td><input id="eng_5_name" class="name"></td><td><input id="eng_5_returnsource" class="returntosource"></td><td><error id="eng_5-error"></error></td>
-            </tr>
-    
-        </table>
-    
-    </div>
+
+
+
+
+
+
+
+
+
+
+    <div class="container">
+      <div class="content">
+        <div class="tab">
+            <button id="default-tab" class="tablinks active" onclick="changeTab(event, 'London')">Position</button>
+            <button class="tablinks" onclick="changeTab(event, 'Paris')">GPI Patch</button>
+            <button class="tablinks" onclick="changeTab(event, 'Tokyo')">Network</button>
+        </div>
+
+
+      
+
+
+      
+
+      <div id="London" class="tabcontent" style="display: block">
+          <table id="engineers">
+
+              <tr>
+                  <th  style="display:none" >Mask</th><th>Destination (AUX)</th> <th>Logic</th> <th></th><th>Name</th> <th>Return To Source</th>
+              </tr>
+      
+              <tr id="eng_0">
+                  <td  style="display:none" ><input id="eng_0_mask" class="mask"></td><td><input id="eng_0_dest" class="route"></td> <td><button id="eng_0_logic" onclick="switchLogic(event, 'eng_0_type')">Toggle</button></td> <td><input style="display: none;" id="eng_0_type" type = "checkbox" class="type"></td><td><input id="eng_0_name" class="name"></td><td><input id="eng_0_returnsource" class="returntosource"></td><td><error id="eng_0-error"></error></td>
+              </tr>
+      
+              <tr id="eng_1">
+                  <td  style="display:none" ><input id="eng_1_mask" class="mask"></td><td><input id="eng_1_dest" class="route"></td> <td><button id="eng_1_logic"  onclick="switchLogic(event, 'eng_1_type')">Toggle</button></td> <td><input style="display: none;" id="eng_1_type" type = "checkbox" class="type"></td><td><input id="eng_1_name" class="name"></td><td><input id="eng_1_returnsource" class="returntosource"></td><td><error id="eng_1-error"></error></td>
+              </tr>
+      
+              <tr id="eng_2">
+                  <td  style="display:none" ><input id="eng_2_mask" class="mask"></td><td><input id="eng_2_dest" class="route"></td> <td><button id="eng_2_logic"  onclick="switchLogic(event, 'eng_2_type')">Toggle</button></td> <td><input style="display: none;" id="eng_2_type" type = "checkbox" class="type"></td><td><input id="eng_2_name" class="name"></td><td><input id="eng_2_returnsource" class="returntosource"></td><td><error id="eng_2-error"></error></td>
+              </tr>
+      
+              <tr id="eng_3">
+                  <td  style="display:none" ><input id="eng_3_mask" class="mask"></td><td><input id="eng_3_dest" class="route"></td> <td><button id="eng_3_logic"  onclick="switchLogic(event, 'eng_3_type')">Toggle</button></td> <td><input style="display: none;" id="eng_3_type" type = "checkbox" class="type"></td><td><input id="eng_3_name" class="name"></td><td><input id="eng_3_returnsource" class="returntosource"></td><td><error id="eng_3-error"></error></td>
+              </tr>
+      
+              <tr id="eng_4">
+                  <td  style="display:none" ><input id="eng_4_mask" class="mask"></td><td><input id="eng_4_dest" class="route"></td> <td><button id="eng_4_logic"  onclick="switchLogic(event, 'eng_4_type')">Toggle</button></td> <td><input style="display: none;" id="eng_4_type" type = "checkbox" class="type"></td><td><input id="eng_4_name" class="name"></td><td><input id="eng_4_returnsource" class="returntosource"></td><td><error id="eng_4-error"></error></td>
+              </tr>
+      
+              <tr id="eng_5">
+                  <td  style="display:none" ><input id="eng_5_mask" class="mask"></td><td><input id="eng_5_dest" class="route"></td> <td><button id="eng_5_logic"  onclick="switchLogic(event, 'eng_5_type')">Toggle</button></td> <td><input style="display: none;" id="eng_5_type" type = "checkbox" class="type"></td><td><input id="eng_5_name" class="name"></td><td><input id="eng_5_returnsource" class="returntosource"></td><td><error id="eng_5-error"></error></td>
+              </tr>
+      
+          </table>
+      
+      </div>
+          
+
+      <div id="Paris" class="tabcontent">
+          <table id="buttons">
+
+              <tr>
+                  <th>GPI</th><th>Source</th><th>Position</th>
+              </tr>
+
+              <tr id="button_0">
+                  <td>1</td><td><input id="button_0_source"></td> <td><select id="button_0_eng"></select></td><td> <error id="button_0-error"></error></td>
+              </tr>
+              
+              <tr id="button_1">
+                  <td>2</td><td><input id="button_1_source"></td> <td><select id="button_1_eng"></select></td> <td><error id="button_1-error"></error></td>
+              </tr>
+              
+              <tr id="button_2">
+                  <td>3</td><td><input id="button_2_source"></td> <td><select id="button_2_eng"></select></td> <td><error id="button_2-error"></error></td>
+              </tr>
+              
+              <tr id="button_3">
+                  <td>4</td><td><input id="button_3_source"></td> <td><select id="button_3_eng"></select></td> <td><error id="button_3-error"></error></td>
+              </tr>
+              
+              <tr id="button_4">
+                  <td>5</td><td><input id="button_4_source"></td> <td><select id="button_4_eng"></select></td> <td><error id="button_4-error"></error></td>
+              </tr>
+              
+              <tr id="button_5">
+                  <td>6</td><td><input id="button_5_source"></td> <td><select id="button_5_eng"></select></td> <td><error id="button_5-error"></error></td>
+              </tr>
+              
+              <tr id="button_6">
+                  <td>7</td><td><input id="button_6_source"></td> <td><select id="button_6_eng"></select></td> <td><error id="button_6-error"></error></td>
+              </tr>
+              
+              <tr id="button_7">
+                  <td>8</td><td><input id="button_7_source"></td> <td><select id="button_7_eng"></select></td> <td><error id="button_7-error"></error></td>
+              </tr>
+              
+              <tr id="button_8">
+                  <td>9</td><td><input id="button_8_source"></td> <td><select id="button_8_eng"></select></td> <td><error id="button_8-error"></error></td>
+              </tr>
+              
+              <tr id="button_9">
+                  <td>10</td><td><input id="button_9_source"></td> <td><select id="button_9_eng"></select></td> <td><error id="button_9-error"></error></td>
+              </tr>
+              
+              <tr id="button_10">
+                  <td>11</td><td><input id="button_10_source"></td> <td><select id="button_10_eng"></select></td> <td><error id="button_10-error"></error></td>
+              </tr>
+              
+              <tr id="button_11">
+                  <td>12</td><td><input id="button_11_source"></td> <td><select id="button_11_eng"></select></td> <td><error id="button_11-error"></error></td>
+              </tr>
+
+          </table> 
+      </div>
+
+
+      <div id="Tokyo" class="tabcontent">
+      </div>
+      <div class="tab">
+        <button id="submit-button" onclick="submitSettings()">Submit</button>
+        <button id="reboot-button" onclick="sendReset()">Reboot</button>
+      </div>
+
+      </div>
+      <div class="overlay" id="overlay2">
         
+            <button id="reload-page" onclick="location.reload()">Reload</button>
+            
+      </div>
 
-    <div id="Paris" class="tabcontent">
-        <table id="buttons">
 
-            <tr>
-                <th>GPI</th><th>Source</th><th>Position</th>
-            </tr>
-
-            <tr id="button_0">
-                <td>1</td><td><input id="button_0_source"></td> <td><select id="button_0_eng"></select></td><td> <error id="button_0-error"></error></td>
-            </tr>
-            
-            <tr id="button_1">
-                <td>2</td><td><input id="button_1_source"></td> <td><select id="button_1_eng"></select></td> <td><error id="button_1-error"></error></td>
-            </tr>
-            
-            <tr id="button_2">
-                <td>3</td><td><input id="button_2_source"></td> <td><select id="button_2_eng"></select></td> <td><error id="button_2-error"></error></td>
-            </tr>
-            
-            <tr id="button_3">
-                <td>4</td><td><input id="button_3_source"></td> <td><select id="button_3_eng"></select></td> <td><error id="button_3-error"></error></td>
-            </tr>
-            
-            <tr id="button_4">
-                <td>5</td><td><input id="button_4_source"></td> <td><select id="button_4_eng"></select></td> <td><error id="button_4-error"></error></td>
-            </tr>
-            
-            <tr id="button_5">
-                <td>6</td><td><input id="button_5_source"></td> <td><select id="button_5_eng"></select></td> <td><error id="button_5-error"></error></td>
-            </tr>
-            
-            <tr id="button_6">
-                <td>7</td><td><input id="button_6_source"></td> <td><select id="button_6_eng"></select></td> <td><error id="button_6-error"></error></td>
-            </tr>
-            
-            <tr id="button_7">
-                <td>8</td><td><input id="button_7_source"></td> <td><select id="button_7_eng"></select></td> <td><error id="button_7-error"></error></td>
-            </tr>
-            
-            <tr id="button_8">
-                <td>9</td><td><input id="button_8_source"></td> <td><select id="button_8_eng"></select></td> <td><error id="button_8-error"></error></td>
-            </tr>
-            
-            <tr id="button_9">
-                <td>10</td><td><input id="button_9_source"></td> <td><select id="button_9_eng"></select></td> <td><error id="button_9-error"></error></td>
-            </tr>
-            
-            <tr id="button_10">
-                <td>11</td><td><input id="button_10_source"></td> <td><select id="button_10_eng"></select></td> <td><error id="button_10-error"></error></td>
-            </tr>
-            
-            <tr id="button_11">
-                <td>12</td><td><input id="button_11_source"></td> <td><select id="button_11_eng"></select></td> <td><error id="button_11-error"></error></td>
-            </tr>
-
-        </table> 
     </div>
-        
-
-    <div id="Tokyo" class="tabcontent">
-    </div>
-        <footer style="position:fixed;bottom:0px">
-        	<a href="https://videowalrus.com">www.videowalrus.com</a>
-        </footer>
+    <footer style="position:fixed;bottom:0px">
+      <a href="https://videowalrus.com">www.videowalrus.com</a>
+    </footer>
 
 </body>
 )rawLiteral";
