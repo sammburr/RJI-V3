@@ -395,7 +395,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
             else {
                 if(message != "") {
                     socket.send(message);
-                    error.innerHTML = " Sent";
+                    error.innerHTML = " &#9989;";
                     error.style = "color: var(--dark-green-accent)";
                 }
 
@@ -437,7 +437,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
             else {
                 if(message != "") {
                     socket.send(message);
-                    error.innerHTML = " Sent";
+                    error.innerHTML = " &#9989;";
                     error.style = "color: var(--dark-green-accent)";
                 }
 
@@ -473,7 +473,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
           if(message != "") {
               socket.send(message);
-              error.innerHTML = " Sent";
+              error.innerHTML = " &#9989;";
               error.style = "color: var(--dark-green-accent)";
               
 
@@ -760,6 +760,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         font-family: Arial, Helvetica, sans-serif;
         background-color: var(--bg-col);
         color: var(--type-col);
+        font-size: large;
     }
 
 
