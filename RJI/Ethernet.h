@@ -101,16 +101,14 @@ const char webpageA[] PROGMEM =R"rawLiteral(
     }
 
     function setVideoHubConnectionStatus(_val) {
-        const element = document.getElementById("vh-connection-status");
-
+        
         if(_val) {
-            element.innerHTML = "Connected to VideoHub!";
-            element.style = "background-color: var(--green-accent); border-color: var(--green-accent);";
 
+            overlay1.classList.remove("active");
         }
         else {
-            element.innerHTML = "Not Connected to VideoHub!";
-            element.style = "";
+
+            overlay1.classList.add("active");
 
         }     
 
@@ -162,19 +160,39 @@ const char webpageA[] PROGMEM =R"rawLiteral(
     }
 
 
+
+
+
+
+
+
+
 	function setGPI(id, state) {
 
 	    var button = document.getElementById(id);
 	    if(state) {
 
-		button.style = "background: var(--green-accent);";
+		button.style = "background: var(--green-accent); cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none;";
 
 	    }
 	    else {
-		button.style = "background: inherit";
+		button.style = "class: square; cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none;";
 	    }
 
 	}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     function populateEngineers(engineers) {
@@ -197,6 +215,8 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
         }
 
+        updateSwitchLogic();
+
     }
 
 
@@ -218,10 +238,10 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
 
     var inputObjects = [
-        { id:"interface-ip", input_type:"ip",  label:"Interface IP ", error_message:" Not a valid IP!"},
-        { id:"interface-gw", input_type:"ip",  label:"Interface Gateway IP ", error_message:" Not a valid IP!"},
-        { id:"interface-sub", input_type:"ip",  label:"Interface Subnet Mask ", error_message:" Not a valid Subnet Mask!"},
-        { id:"interface-dhcp", input_type:"bool", label:"Toggle DHCP ", error_message:" ???Thats not good???" },
+        { id:"interface-ip", input_type:"ip",  label:"Interface IP ", error_message:" Not a valid IP"},
+        { id:"interface-gw", input_type:"ip",  label:"Interface Gateway IP ", error_message:" Not a valid IP"},
+        { id:"interface-sub", input_type:"ip",  label:"Interface Subnet Mask ", error_message:" Not a valid Subnet Mask"},
+        { id:"interface-dhcp", input_type:"bool", label:"DHCP ", error_message:" ???Thats not good???" },
         { id:"videohub-ip", input_type:"ip", label:"VideoHub IP ", error_message:" Not a valid IP!"},
         { id:"videohub-port", input_type:"port", label:"VideoHub Port ", error_message:" Not a valid port number!"}
     ];
@@ -268,48 +288,45 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
         });
 
-        var button = document.createElement("button");
-        button.innerHTML = "submit";
-        button.onclick = function(){submitSettings()};
-        document.body.appendChild(button);
+        // var button = document.createElement("button");
+        // button.innerHTML = "submit";
+        // button.onclick = function(){submitSettings()};
+        // document.body.appendChild(button);
 
-        button = document.createElement("button");
-        button.innerHTML = "reboot";
-        button.onclick = function(){sendReset()};
-        button.id = "reboot-button";
-        document.body.appendChild(button);
+        // button = document.createElement("button");
+        // button.innerHTML = "Reboot";
+        // button.onclick = function(){sendReset()};
+        // button.id = "reboot-button";
+        // document.body.appendChild(button);
 
-        var div = document.createElement("div");
-
-        button = document.createElement("button");
-        button.innerHTML = "connect to videohub";
-        button.onclick = function(){sendConnectToVideohub()};
-        button.id = "retry-video-button";
-
-        div.appendChild(button);
-        div.appendChild(document.createElement("br"));
-        div.appendChild(document.createElement("br"));
-        div.appendChild(document.createElement("br"));
-
-        var span = document.createElement("span");
-        span.style.display = "none";
-        span.id = "auto-connect-span";
-
-        var label = document.createElement("label");
-        label.innerHTML = "auto connect";
+        // var div = document.createElement("div");
 
 
-        button = document.createElement("input");
-        button.type = "checkbox";
-        button.id = "auto-connect";
-        button.checked = true;
 
-        span.appendChild(label);
-        span.appendChild(button);
+        // button = document.createElement("button");
+        // button.innerHTML = "connect to videohub";
+        // button.onclick = function(){sendConnectToVideohub()};
+        // button.id = "retry-video-button";
+        // div.appendChild(button);
+        // div.appendChild(document.createElement("br"));
+        // div.appendChild(document.createElement("br"));
+        // div.appendChild(document.createElement("br"));
+        // var span = document.createElement("span");
+        // span.style.display = "none";
+        // span.id = "auto-connect-span";
+        // var label = document.createElement("label");
+        // label.innerHTML = "auto connect";
+        // button = document.createElement("input");
+        // button.type = "checkbox";
+        // button.id = "auto-connect";
+        // button.checked = true;
 
-        div.appendChild(span);
+        // span.appendChild(label);
+        // span.appendChild(button);
 
-        document.body.appendChild(div);
+        // div.appendChild(span);
+
+        // document.body.appendChild(div);
         
 
     }
@@ -378,7 +395,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
             else {
                 if(message != "") {
                     socket.send(message);
-                    error.innerHTML = " Sent!";
+                    error.innerHTML = " &#9989;";
                     error.style = "color: var(--dark-green-accent)";
                 }
 
@@ -420,7 +437,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
             else {
                 if(message != "") {
                     socket.send(message);
-                    error.innerHTML = " Sent!";
+                    error.innerHTML = " &#9989;";
                     error.style = "color: var(--dark-green-accent)";
                 }
 
@@ -450,7 +467,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
             else {
                 if(message != "") {
                     socket.send(message);
-                    error.innerHTML = " Sent!";
+                    error.innerHTML = " &#9989;";
                     error.style = "color: var(--dark-green-accent)";
                 }
 
@@ -585,11 +602,17 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         const eng5t = document.getElementById("eng_5_type");
 
         if(eng0t.checked) eng0.innerHTML = "Toggle";
+        else eng0.innerHTML = "Latch";
         if(eng1t.checked) eng1.innerHTML = "Toggle";
+        else eng1.innerHTML = "Latch";
         if(eng2t.checked) eng2.innerHTML = "Toggle";
+        else eng2.innerHTML = "Latch";
         if(eng3t.checked) eng3.innerHTML = "Toggle";
+        else eng3.innerHTML = "Latch";
         if(eng4t.checked) eng4.innerHTML = "Toggle";
+        else eng4.innerHTML = "Latch";
         if(eng5t.checked) eng5.innerHTML = "Toggle";
+        else eng5.innerHTML = "Latch";
 
 
     }
@@ -677,6 +700,29 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
     }
 
+    var last_gpi_id;
+
+    function gpiDown(id) {
+
+      var message = "[\"gpi_down\",";
+      message += id;
+      message += "]";
+
+      last_gpi_id = id;
+
+      socket.send(message);
+    }
+
+
+    function gpiUp(id) {
+
+      var message = "[\"gpi_up\",";
+      message += last_gpi_id;
+      message += "]";
+
+      socket.send(message);
+    }
+
 
     </script>
 
@@ -685,7 +731,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
     /* Color Scheme */
     :root {
-        --bg-col: #FFFFFA;
+        --bg-col: #d9d9d9;
         --type-col: #2F2F2F;
         --green-accent: #D1EFB5;
         --dark-green-accent: #587c36;
@@ -693,6 +739,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         --dark-blue-accent: #BAD5DC;
         --orange-accent: #F59D46;
         --dark-orange-accent: #ff8000;
+        --light-gray-accent: #eeeeee;
 
     }
 
@@ -709,6 +756,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         font-family: Arial, Helvetica, sans-serif;
         background-color: var(--bg-col);
         color: var(--type-col);
+        font-size: large;
     }
 
 
@@ -751,26 +799,29 @@ const char webpageA[] PROGMEM =R"rawLiteral(
     .grid-cont {
         display: grid;
         grid-template-columns: auto auto auto auto;
-        border-top: 1px solid #ccc;
-        border-left: 1px solid #ccc;
-        border-right: 1px solid #ccc;
-
     }
 
 
     .square {
-        background-color: inherit;
-        padding: 20px;
+        background-color: var(--light-gray-accent);
+        padding: 15px;
         text-align: center;
+        margin: 2px;
+        border-radius: 7px;
+        font-size: 16pt;
+        font-weight: bold;
 
+    }
+
+    .square:hover {
+        background-color: var(--dark-blue-accent);
     }
 
 
     /* Style the tab */
     .tab {
         overflow: hidden;
-        border: 1px solid #ccc;
-        background-color: #f1f1f1;
+        border: 0px;
 
     }
 
@@ -788,9 +839,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
 
     input {
-        border: none;
-        outline: none;
-        border-bottom: solid 1px #ccc;
+        border: solid 1px #e7e6e6;
     }
 
 
@@ -826,8 +875,6 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         display: none;
         padding: 6px 12px;
         border: 1px solid #ccc;
-        border-top: none;
-
     }
 
 
@@ -840,6 +887,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
     td button {
         padding: 2px 50px;
+        width: 100%;
 
 
     }
@@ -868,6 +916,45 @@ const char webpageA[] PROGMEM =R"rawLiteral(
       font-weight: bold;
     }
 
+    .container {
+    position: relative;
+    width: 100%;
+    padding: 5px;
+  }
+  
+  .content {
+    padding: 0px;
+  }
+  
+  .overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    visibility: hidden;
+    opacity: 0;
+    transition: visibility 0s, opacity 0.3s ease-in-out;
+  }
+  
+  .overlay.active {
+    visibility: visible;
+    opacity: 1;
+  }
+  
+  .message {
+    padding: 10px 20px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 8px;
+  }
+
     </style>
 
 </head>
@@ -883,32 +970,40 @@ const char webpageA[] PROGMEM =R"rawLiteral(
                     src="data:image/png;base64,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"
                   />
                 </td>
-                 <td><page-title>GPI 12</page-title> Joystick Interface</td>
+                 <td><page-title>GPI 12</page-title> Joystick Interface - Video Hub</td>
               </tr>
             </thead>
             </table>
-    <span id="ws-connection-status">Not Connected!</span>
-    <span id="vh-connection-status">Not Connected to VideoHub!</span>
 
-    <div class="grid-cont">
-        <div id="gpi-1" class="square">GPI 1</div>
-        <div id="gpi-2" class="square">GPI 2</div>    
-        <div id="gpi-3" class="square">GPI 3</div>
-        <div id="gpi-4" class="square">GPI 4</div>  
-        <div id="gpi-5" class="square">GPI 5</div>
-        <div id="gpi-6" class="square">GPI 6</div>  
-        <div id="gpi-7" class="square">GPI 7</div>
-        <div id="gpi-8" class="square">GPI 8</div>  
-        <div id="gpi-9" class="square">GPI 9</div>
-        <div id="gpi-10" class="square">GPI 10</div>  
-        <div id="gpi-11" class="square">GPI 11</div>
-        <div id="gpi-12" class="square">GPI 12</div>  
-    </div>
 
+    <div class="container">
+        <div class="content">
+        <div class="grid-cont">
+            <div id="gpi-1" class="square" onmousedown="gpiDown(1)" onmouseup="gpiUp(1)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 1</div>
+            <div id="gpi-2" class="square" onmousedown="gpiDown(2)" onmouseup="gpiUp(2)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 2</div>    
+            <div id="gpi-3" class="square" onmousedown="gpiDown(3)" onmouseup="gpiUp(3)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 3</div>
+            <div id="gpi-4" class="square" onmousedown="gpiDown(4)" onmouseup="gpiUp(4)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 4</div>  
+            <div id="gpi-5" class="square" onmousedown="gpiDown(5)" onmouseup="gpiUp(5)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 5</div>
+            <div id="gpi-6" class="square" onmousedown="gpiDown(6)" onmouseup="gpiUp(6)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 6</div>  
+            <div id="gpi-7" class="square" onmousedown="gpiDown(7)" onmouseup="gpiUp(7)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 7</div>
+            <div id="gpi-8" class="square" onmousedown="gpiDown(8)" onmouseup="gpiUp(8)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 8</div>  
+            <div id="gpi-9" class="square" onmousedown="gpiDown(9)" onmouseup="gpiUp(9)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 9</div>
+            <div id="gpi-10" class="square" onmousedown="gpiDown(10)" onmouseup="gpiUp(10)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 10</div>  
+            <div id="gpi-11" class="square" onmousedown="gpiDown(11)" onmouseup="gpiUp(11)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 11</div>
+            <div id="gpi-12" class="square" onmousedown="gpiDown(12)" onmouseup="gpiUp(12)" style="cursor: pointer; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; -o-user-select: none; user-select: none; ">GPI 12</div>  
+        </div>
+        </div>
+        <div class="overlay" id="overlay1">
+          <button id="retry-video-button" onclick="sendConnectToVideohub()">Reconnect</button>
+        </div>
+      </div>
+
+    <div class="container">
+      <div class="content">
 
     <div class="tab">
-        <button id="default-tab" class="tablinks" onclick="changeTab(event, 'London')">Engineers</button>
-        <button class="tablinks" onclick="changeTab(event, 'Paris')">Buttons</button>
+        <button id="default-tab" class="tablinks" onclick="changeTab(event, 'London')">Position</button>
+        <button class="tablinks" onclick="changeTab(event, 'Paris')">GPI Patch</button>
         <button class="tablinks" onclick="changeTab(event, 'Tokyo')">Network</button>
     </div>
     
@@ -953,7 +1048,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         <table id="buttons">
 
             <tr>
-                <th>Button</th><th>Source</th><th>Engineer</th>
+                <th>Button</th><th>Source</th><th>Position</th>
             </tr>
 
             <tr id="button_0">
@@ -1010,9 +1105,24 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
     <div id="Tokyo" class="tabcontent">
     </div>
-        <footer style="position:fixed;bottom:0px">
-        	www.videowalrus.com
-        </footer>
+<div class="tab">
+        <button id="submit-button" onclick="submitSettings()">Submit</button>
+        <button id="reboot-button" onclick="sendReset()">Reboot</button>
+      </div>
+
+      </div>
+      <div class="overlay" id="overlay2">
+        
+            <button id="reload-page" onclick="location.reload()">Reload</button>
+            
+      </div>
+
+
+    </div>
+    <footer style="position:fixed;bottom:0px">
+      <a href="https://videowalrus.com">www.videowalrus.com</a>
+    </footer>
+
 
 </body>
 )rawLiteral";

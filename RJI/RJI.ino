@@ -56,8 +56,8 @@ void setup() {
     // Start with DHCP
     Network.startEthernet();
     // Reset dhcp flag
-    dhcpFlag[0] = 0;
-    Settings.write(dhcpFlag, Var_DHCPToggle_Size, Var_DHCPToggle);
+    // dhcpFlag[0] = 0;
+    // Settings.write(dhcpFlag, Var_DHCPToggle_Size, Var_DHCPToggle);
     // Write the new ip to settings
     ip[0] = Network.ip[0];
     ip[1] = Network.ip[1];
@@ -309,6 +309,11 @@ void websocketMessageCallback(WebsocketsClient& _client, WebsocketsMessage _mess
       Network.autoConnect = true;
     else
       Network.autoConnect = false;
+
+  } else if(header == "gpi_down") {
+    buttonCallback(json[1].as<int>() + 28, true);
+  } else if(header == "gpi_up") {
+    buttonCallback(json[1].as<int>() + 28, false);
 
 
   }
