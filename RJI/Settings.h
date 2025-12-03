@@ -51,6 +51,9 @@
 #define Var_InterfaceSub_Size 4
 #define Var_InterfaceGW_Size 4
 
+#define Var_RouterProtocol_Size 1   // 0 = VideoHub, 1 = SWP-08
+#define Var_SWP08Level_Size 1       // Level number for SWP-08 (0-15)
+
 // The offset (starting byte in EEPROM memory) of each var
 #define Var_InterfaceIP 0
 #define Var_WebServerPort Var_InterfaceIP + Var_InterfaceIP_Size
@@ -84,19 +87,23 @@
 #define Var_InterfaceSub Var_Button_11_Source + Var_InterfaceSub_Size
 #define Var_InterfaceGW Var_InterfaceSub + Var_InterfaceGW_Size
 
+#define Var_RouterProtocol Var_InterfaceGW + Var_InterfaceGW_Size
+#define Var_SWP08Level Var_RouterProtocol + Var_RouterProtocol_Size
+
 class Settings {
 
 // Default values for settings
 byte interface_ip[Var_InterfaceIP_Size] =     {192,168,10,51};
-byte videohub_ip[Var_VideoHubIP_Size] =       {192,168,10,11}; //TODO make this something sensible
-//byte videohub_ip[Var_VideoHubIP_Size] =       {172,16,21,55}; //TODO make this something sensible
+byte router_ip[Var_VideoHubIP_Size] =         {192,168,10,11};
+byte router_protocol[Var_RouterProtocol_Size] = {0};  // 0 = VideoHub, 1 = SWP-08
+byte swp08_level[Var_SWP08Level_Size] =       {0};    // Default level 0
 
 byte interface_sub[Var_InterfaceSub_Size] =         {255,255,255,0};
 byte interface_gw[Var_InterfaceGW_Size] =           {192,168,10,1};
 
 uint16_t webserver_port =                     80;
 uint16_t websocket_port =                     8080;
-uint16_t videohub_port =                      9990;
+uint16_t router_port =                        9990;  // VideoHub default, SWP-08 uses 9000
 byte reset_flag[Var_ResetInterface_Size] =    {0};
 byte dhcp_toggle[Var_DHCPToggle_Size] =       {0};
 
@@ -190,8 +197,10 @@ public:
     write_16bit(webserver_port, Var_WebServerPort);
     write(reset_flag, Var_ResetInterface_Size, Var_ResetInterface);
     write_16bit(websocket_port, Var_WebSocketPort);
-    write(videohub_ip, Var_VideoHubIP_Size, Var_VideoHubIP);
-    write_16bit(videohub_port, Var_VideoHubPort);
+    write(router_ip, Var_VideoHubIP_Size, Var_VideoHubIP);
+    write_16bit(router_port, Var_VideoHubPort);
+    write(router_protocol, Var_RouterProtocol_Size, Var_RouterProtocol);
+    write(swp08_level, Var_SWP08Level_Size, Var_SWP08Level);
     write(dhcp_toggle, Var_DHCPToggle_Size, Var_DHCPToggle);
 
     write(eng_0, Var_Eng_0_Size, Var_Eng_0);
@@ -234,23 +243,29 @@ public:
     read(resetFlag, Var_ResetInterface_Size, Var_ResetInterface);
     uint16_t webSocketPort;
     read_16bit(webSocketPort, Var_WebSocketPort);
-    byte videoHubIP[Var_VideoHubIP_Size];
-    read(videoHubIP, Var_VideoHubIP_Size, Var_VideoHubIP);
-    uint16_t videoHubPort;
-    read_16bit(videoHubPort, Var_VideoHubPort);
+    byte routerIP[Var_VideoHubIP_Size];
+    read(routerIP, Var_VideoHubIP_Size, Var_VideoHubIP);
+    uint16_t routerPort;
+    read_16bit(routerPort, Var_VideoHubPort);
     byte dhcpToggle[Var_DHCPToggle_Size];
     read(dhcpToggle, Var_DHCPToggle_Size, Var_DHCPToggle);
+    byte routerProtocol[Var_RouterProtocol_Size];
+    read(routerProtocol, Var_RouterProtocol_Size, Var_RouterProtocol);
+    byte swp08Level[Var_SWP08Level_Size];
+    read(swp08Level, Var_SWP08Level_Size, Var_SWP08Level);
 
     Debug.printSubTitle("SETTINGS START");
-    
+
     info("IP: ", ip[0], ".", ip[1], ".", ip[2], ".", ip[3]);
     info("Subnet: ", sub[0], ".", sub[1], ".", sub[2], ".", sub[3]);
     info("Gateway: ", gw[0], ".", gw[1], ".", gw[2], ".", gw[3]);
     info("WebServerPort: ", webServerPort);
     info("WebSocketPort: ", webSocketPort);
     info("Reset Flag: ", *resetFlag);
-    info("VideoHub IP: ", videoHubIP[0], ".", videoHubIP[1], ".", videoHubIP[2], ".", videoHubIP[3]);
-    info("VideoHub Port: ", videoHubPort);
+    info("Router IP: ", routerIP[0], ".", routerIP[1], ".", routerIP[2], ".", routerIP[3]);
+    info("Router Port: ", routerPort);
+    info("Router Protocol: ", *routerProtocol == 0 ? "VideoHub" : "SWP-08");
+    info("SWP-08 Level: ", *swp08Level);
     info("DHCP Flag: ", *dhcpToggle);
 
 
@@ -315,13 +330,19 @@ public:
     uint16_t webSocketPort;
     read_16bit(webSocketPort, Var_WebSocketPort);
 
-    byte videoHubIP[Var_VideoHubIP_Size];
-    read(videoHubIP, Var_VideoHubIP_Size, Var_VideoHubIP);
-    uint16_t videoHubPort;
-    read_16bit(videoHubPort, Var_VideoHubPort);
+    byte routerIP[Var_VideoHubIP_Size];
+    read(routerIP, Var_VideoHubIP_Size, Var_VideoHubIP);
+    uint16_t routerPort;
+    read_16bit(routerPort, Var_VideoHubPort);
 
     byte dhcpToggle[Var_DHCPToggle_Size];
     read(dhcpToggle, Var_DHCPToggle_Size, Var_DHCPToggle);
+
+    byte routerProtocol[Var_RouterProtocol_Size];
+    read(routerProtocol, Var_RouterProtocol_Size, Var_RouterProtocol);
+
+    byte swp08Level[Var_SWP08Level_Size];
+    read(swp08Level, Var_SWP08Level_Size, Var_SWP08Level);
 
 
     // IP
@@ -342,17 +363,25 @@ public:
     doc[3][1] = *dhcpToggle;
 
 
-    // Video Hub IP
-    doc[4][0] = "videohub-ip";
-    doc[4][1] = videoHubIP[0];
-    doc[4][2] = videoHubIP[1];
-    doc[4][3] = videoHubIP[2];
-    doc[4][4] = videoHubIP[3];
+    // Router IP
+    doc[4][0] = "router-ip";
+    doc[4][1] = routerIP[0];
+    doc[4][2] = routerIP[1];
+    doc[4][3] = routerIP[2];
+    doc[4][4] = routerIP[3];
 
 
-    // Video Hub Port
-    doc[5][0] = "videohub-port";
-    doc[5][1] = videoHubPort;
+    // Router Port
+    doc[5][0] = "router-port";
+    doc[5][1] = routerPort;
+
+    // Router Protocol
+    doc[10][0] = "router-protocol";
+    doc[10][1] = *routerProtocol;
+
+    // SWP-08 Level
+    doc[11][0] = "swp08-level";
+    doc[11][1] = *swp08Level;
 
 
     // Engineers

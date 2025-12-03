@@ -86,11 +86,23 @@ void setup() {
   Settings.read_16bit(port, Var_WebSocketPort);
   Network.startWebSocketServer(port, websocketMessageCallback);
 
-  info("Connecting to VideoHub...");
+  info("Setting up router protocol...");
+
+  // Read and set protocol type
+  byte protocolType[1];
+  Settings.read(protocolType, Var_RouterProtocol_Size, Var_RouterProtocol);
+  Network.setProtocol((RouterProtocolType)(*protocolType));
+
+  // Read and set SWP-08 level
+  byte swp08Level[1];
+  Settings.read(swp08Level, Var_SWP08Level_Size, Var_SWP08Level);
+  Network.setSWP08Level(*swp08Level);
+
+  info("Connecting to Router...");
 
   Settings.read(ip, Var_VideoHubIP_Size, Var_VideoHubIP);
   Settings.read_16bit(port, Var_VideoHubPort);
-  Network.connectToVideoHub(ip, port);
+  Network.connectToRouter(ip, port);
 
   DebugLight.green();
   Debug.printTitle("TEENSY SETUP DONE");
@@ -104,7 +116,7 @@ void loop() {
   Network.pollWebServer();
   Network.pollWebSocketServer();
   
-  Network.pollVideoHub();
+  Network.pollRouter();
 
   Network.clock += 1;
 
@@ -208,14 +220,26 @@ void websocketMessageCallback(WebsocketsClient& _client, WebsocketsMessage _mess
 
     Settings.write(value, Var_DHCPToggle_Size, Var_DHCPToggle);
 
-  } else if(header == "videohub-ip") {
-    info("Writing to VideoHubIP...");
+  } else if(header == "videohub-ip" || header == "router-ip") {
+    info("Writing to RouterIP...");
     byte ip[4] = {json[1], json[2], json[3], json[4]};
     Settings.write(ip, Var_VideoHubIP_Size, Var_VideoHubIP);
 
-  } else if(header == "videohub-port") {
-    info("Writing to VideoHubPort...");
+  } else if(header == "videohub-port" || header == "router-port") {
+    info("Writing to RouterPort...");
     Settings.write_16bit(json[1], Var_VideoHubPort);
+
+  } else if(header == "router-protocol") {
+    info("Writing to RouterProtocol...");
+    byte protocol[1] = {(byte)json[1].as<int>()};
+    Settings.write(protocol, Var_RouterProtocol_Size, Var_RouterProtocol);
+    Network.setProtocol((RouterProtocolType)(protocol[0]));
+
+  } else if(header == "swp08-level") {
+    info("Writing to SWP08Level...");
+    byte level[1] = {(byte)json[1].as<int>()};
+    Settings.write(level, Var_SWP08Level_Size, Var_SWP08Level);
+    Network.setSWP08Level(level[0]);
 
   } else if(header == "reset") {
     info("Restarting the Interface...");
@@ -293,8 +317,8 @@ void websocketMessageCallback(WebsocketsClient& _client, WebsocketsMessage _mess
     info("Writing button_11 source...");
     Settings.write_16bit(json[1].as<uint16_t>(), Var_Button_11_Source);
 
-  }  else if(header == "video_hub_retry") {
-    info("Trying to connect to the video hub...");
+  }  else if(header == "video_hub_retry" || header == "router_retry") {
+    info("Trying to connect to the router...");
 
     byte ip[4];
     uint16_t port;
@@ -304,7 +328,7 @@ void websocketMessageCallback(WebsocketsClient& _client, WebsocketsMessage _mess
 
     info(ip[0], ".", ip[1], ".",ip[2], ".",ip[3], ":", port);
 
-    Network.reconnectToVideoHub(ip, port);
+    Network.reconnectToRouter(ip, port);
     if(json[1].as<bool>())
       Network.autoConnect = true;
     else

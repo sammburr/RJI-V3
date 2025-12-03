@@ -69,17 +69,11 @@ public:
           uint16_t source;
           Settings.read_16bit(source, Var_Button_0_Source + ((int)(_pin - 29)*2));
 
-          VideoHub.lastSource = *dest;
-          VideoHub.lastDest = source;
-
-          std::string msg = "VIDEO OUTPUT ROUTING:\n";
-          msg += std::to_string(*dest);
-          msg += " ";
-          msg += std::to_string(source);
-          msg += "\n\n";
+          Network.currentProtocol->lastSource = *dest;
+          Network.currentProtocol->lastDest = source;
 
           //info("Setting engineer: ", name, "(", *dest ,")", " to source: ", source);
-          Network.sendMessageToVideoHub(msg.c_str());
+          Network.sendRouteToRouter(*dest, source);
 
           if (*type){
             // Add this to the top of this engineer's stack
@@ -99,20 +93,14 @@ public:
           Settings.read_16bit(source, Var_Button_0_Source + ((int)(lists[i].front())*2));
 
           if(lists[i].empty()) {
-            source = VideoHub.routingPairs[*dest];
+            source = Network.currentProtocol->routingPairs[*dest];
           }
 
-          VideoHub.lastSource = *dest;
-          VideoHub.lastDest = source;
-
-          std::string msg = "VIDEO OUTPUT ROUTING:\n";
-          msg += std::to_string(*dest);
-          msg += " ";
-          msg += std::to_string(source);
-          msg += "\n\n";
+          Network.currentProtocol->lastSource = *dest;
+          Network.currentProtocol->lastDest = source;
 
           //info("Setting engineer: ", name, "(", *dest ,")", " to source: ", source);
-          Network.sendMessageToVideoHub(msg.c_str());
+          Network.sendRouteToRouter(*dest, source);
 
         }
 

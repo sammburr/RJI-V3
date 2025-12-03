@@ -16,7 +16,9 @@ using namespace websockets;
 
 
 #include "Debug.h"
-#include "VideoHub.h"
+#include "RouterProtocol.h"
+#include "VideoHubProtocol.h"
+#include "SWP08Protocol.h"
 
 typedef void (*MessageHandle)(WebsocketsClient&, WebsocketsMessage);
 
@@ -55,7 +57,11 @@ const char webpageA[] PROGMEM =R"rawLiteral(
                 break;
             
             case "vh-stat":
-                setVideoHubConnectionStatus(json[1]);
+                setRouterConnectionStatus(json[1]);
+                break;
+
+            case "router-stat":
+                setRouterConnectionStatus(json[1]);
                 break;
             
             case "settings":
@@ -96,12 +102,12 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         else {
             element.innerHTML = "Not Connected!";
             element.style = "";
-            setVideoHubConnectionStatus(_val);
-        }        
+            setRouterConnectionStatus(_val);
+        }
     }
 
-    function setVideoHubConnectionStatus(_val) {
-        
+    function setRouterConnectionStatus(_val) {
+
         if(_val) {
 
             overlay1.classList.remove("active");
@@ -110,7 +116,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
             overlay1.classList.add("active");
 
-        }     
+        }
 
     }
 
@@ -130,24 +136,38 @@ const char webpageA[] PROGMEM =R"rawLiteral(
                 return;
             }
 
+            // Special case for protocol selector
+            if(element[0] == "router-protocol") {
+                var protocolSelect = document.getElementById("router-protocol");
+                if(protocolSelect != null) {
+                    protocolSelect.selectedIndex = element[1];
+                    updateProtocolFields();
+                }
+                return;
+            }
+
             // Get the input object
             var inputObject = document.getElementById(element[0]);
             if (inputObject != null) {
             // Here I am assuming there is only one class
             var inputType = inputObject.classList[0];
-            
+
             switch (inputType) {
 
                 case "ip":
-                    inputObject.value = element[1] + "." + element[2] + "." + element[3] + "." + element[4]; 
+                    inputObject.value = element[1] + "." + element[2] + "." + element[3] + "." + element[4];
                     break;
 
                 case "port":
                     inputObject.value = element[1];
                     break;
-                
+
                 case "bool":
                     inputObject.checked = element[1];
+                    break;
+
+                case "level":
+                    inputObject.value = element[1];
                     break;
 
             }
@@ -156,7 +176,20 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         });
         updateButtonOptions(false);
         updateSwitchLogic();
+        updateProtocolFields();
 
+    }
+
+    function updateProtocolFields() {
+        var protocolSelect = document.getElementById("router-protocol");
+        var swp08Fields = document.getElementById("swp08-fields");
+        if(protocolSelect && swp08Fields) {
+            if(protocolSelect.selectedIndex == 1) {
+                swp08Fields.style.display = "block";
+            } else {
+                swp08Fields.style.display = "none";
+            }
+        }
     }
 
 
@@ -242,15 +275,43 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         { id:"interface-gw", input_type:"ip",  label:"Interface Gateway IP ", error_message:" Not a valid IP"},
         { id:"interface-sub", input_type:"ip",  label:"Interface Subnet Mask ", error_message:" Not a valid Subnet Mask"},
         { id:"interface-dhcp", input_type:"bool", label:"DHCP ", error_message:" ???Thats not good???" },
-        { id:"videohub-ip", input_type:"ip", label:"VideoHub IP ", error_message:" Not a valid IP!"},
-        { id:"videohub-port", input_type:"port", label:"VideoHub Port ", error_message:" Not a valid port number!"}
+        { id:"router-ip", input_type:"ip", label:"Router IP ", error_message:" Not a valid IP!"},
+        { id:"router-port", input_type:"port", label:"Router Port ", error_message:" Not a valid port number!"},
+        { id:"swp08-level", input_type:"level", label:"SWP-08 Level ", error_message:" Not a valid level (0-15)!"}
     ];
 
 
     function populateInputObjects() {
         var tokyo = document.getElementById("Tokyo")
+
+        // Add protocol selector first
+        var protocolDiv = document.createElement("div");
+        var protocolLabel = document.createElement("label");
+        protocolLabel.innerHTML = "Router Protocol ";
+        var protocolSelect = document.createElement("select");
+        protocolSelect.id = "router-protocol";
+        protocolSelect.classList.add("protocol");
+        protocolSelect.onchange = function() { updateProtocolFields(); };
+        var optVH = document.createElement("option");
+        optVH.value = "0";
+        optVH.innerHTML = "VideoHub";
+        var optSWP = document.createElement("option");
+        optSWP.value = "1";
+        optSWP.innerHTML = "SWP-08";
+        protocolSelect.appendChild(optVH);
+        protocolSelect.appendChild(optSWP);
+        protocolDiv.appendChild(protocolLabel);
+        protocolDiv.appendChild(protocolSelect);
+        tokyo.appendChild(protocolDiv);
+        tokyo.appendChild(document.createElement("br"));
+
+        // Create a container for SWP-08 specific fields
+        var swp08Container = document.createElement("div");
+        swp08Container.id = "swp08-fields";
+        swp08Container.style.display = "none";
+
         inputObjects.forEach(obj => {
-            
+
             console.log(obj)
 
             // Add a span object and populate
@@ -261,15 +322,21 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
             // Input type
             var inputObjectInput = document.createElement("input");
-            
+
             switch (obj.input_type) {
 
                 case "bool":
                     inputObjectInput.type = "checkbox";
                     break;
 
+                case "level":
+                    inputObjectInput.type = "number";
+                    inputObjectInput.min = "0";
+                    inputObjectInput.max = "15";
+                    break;
+
             }
-            
+
             var inputObjectError = document.createElement("error");
 
             inputObjectLabel.innerHTML = obj.label;
@@ -283,10 +350,19 @@ const char webpageA[] PROGMEM =R"rawLiteral(
             inputObject.appendChild(inputObjectInput);
             inputObject.appendChild(inputObjectError);
 
-            tokyo.appendChild(inputObject);
-            tokyo.appendChild(document.createElement("br"));
+            // Put SWP-08 level in separate container
+            if(obj.id == "swp08-level") {
+                swp08Container.appendChild(inputObject);
+                swp08Container.appendChild(document.createElement("br"));
+            } else {
+                tokyo.appendChild(inputObject);
+                tokyo.appendChild(document.createElement("br"));
+            }
 
         });
+
+        // Add the SWP-08 fields container
+        tokyo.appendChild(swp08Container);
 
         // var button = document.createElement("button");
         // button.innerHTML = "submit";
@@ -331,10 +407,10 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
     }
 
-    function sendConnectToVideohub() {
+    function sendConnectToRouter() {
 
-        socket.send("[\"video_hub_retry\", " + false + "]");
-        
+        socket.send("[\"router_retry\", " + false + "]");
+
     }
 
 	function sendReset() {
@@ -352,8 +428,15 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         // Gotta update the masks first based on values given in 'Buttons':
         updateMaskOnButtons();
 
+        // Send protocol selection first
+        var protocolSelect = document.getElementById("router-protocol");
+        if(protocolSelect) {
+            var protocolMsg = "[\"router-protocol\"," + protocolSelect.selectedIndex + "]";
+            socket.send(protocolMsg);
+        }
+
         inputObjects.forEach(obj => {
-            
+
             var falsifiable = false;
             var message = "";
 
@@ -366,7 +449,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
                 case "ip":
                     falsifiable = !isIPValid(inputObj.value);
                     var splitIp = inputObj.value.split(".");
-                    message = "[\"" + obj.id + "\"," + 
+                    message = "[\"" + obj.id + "\"," +
                     splitIp[0] + "," +
                     splitIp[1] + "," +
                     splitIp[2] + "," +
@@ -382,13 +465,18 @@ const char webpageA[] PROGMEM =R"rawLiteral(
                     message = "[\"" + obj.id + "\"," + inputObj.checked + "]"
                     break;
 
+                case "level":
+                    falsifiable = !isLevelValid(inputObj.value);
+                    message = "[\"" + obj.id + "\"," + inputObj.value + "]"
+                    break;
+
             }
 
             var error = document.getElementById(obj.id + "-error");
 
             if(falsifiable) {
                 // Get error
-                error.innerHTML = obj.error_message; 
+                error.innerHTML = obj.error_message;
                 error.style = "color: var(--dark-orange-accent)";
 
             }
@@ -509,6 +597,11 @@ const char webpageA[] PROGMEM =R"rawLiteral(
     function isPortValid(port) {
         // Check if the port is a non-empty string and is a valid positive integer
         return /^\d+$/.test(port) && parseInt(port, 10) >= 0 && parseInt(port, 10) <= 65535;
+    }
+
+    function isLevelValid(level) {
+        // Check if the level is a valid number between 0-15
+        return /^\d+$/.test(level) && parseInt(level, 10) >= 0 && parseInt(level, 10) <= 15;
     }     
 
 
@@ -970,7 +1063,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
                     src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAMAAAAp4XiDAAAC91BMVEVHcEyge1uQl6/EakvjUTO2io/6XyhhYWUtMDrvWij3ViOjn5/vXy4sNTf7Th3RNSxubmn7NhL4Viz5eZn5XSR8dHTXMyTzVi/7OxNATEzbLST7UyD/PBX4YiPyNxzZPCjzUSz/UhpybGzuNB1jPCj6UyDzORT+URn/NhL4YSbvRRpya2f5PBiSkI79RxzDurj3MBiTlZX/URu3s7HBu7nQKxr4ZyL8ORaOKCh+KSj+VBT/RRj/LxH+PxX9Nhf/JhD/Uxj/PBFxaGViPi78YBz8QBdxbmryUBWwqarKHiW/ubb8Xxf/SBZER0f6OBb+RRRzbGfMHx//Wxr/OhK9JR8lLjGIiYj+YhYeKi6sqacqMDL+QRQ0KiuYmZX/URbMRxpBKChVJyY7Pz9vJyZ0JydkKCb/YhW7KyAmMDL/PBCHIiK4tbGFICAlMzf9YhTXNiCsJyOVlpSuQB77XhScMSW7IR7lXhfTUxUqPD2INyhwKCqZQh77XhS8OCVCTlN+NylgJy09MCr///////7+/////v/+/v7+/vz6+vn49/b29vXv7enj5OTg4N3d29nb2NbX09DPzs3RysXJycjIv7m+vr26vLrBuK+7sKe1qZ+pqaixo5qvopWio6Kvn5Ckn5msmYqbnJqnmIq+jn2klIWVlZWhjoGdi36YhHaWgnWXgnKWgnSVgnSUgXOTfG/wWxTmWxXcVxSJbGHVTxXDThVrZWCxSBlgYF1ZW1lWVlNUVVxSUlBaTFSZNSJLUlZFUlaDPBuoJyNMTUtITlBXRkxTR0BKSkddQUJpODtHR0ZASUxyOBiTJSOELCZ1MyVEREJCREY8RkqBKSdAQ0REQUBqMihrNBg5REhYNzg3QkU9Pz9BPTpgMRk5PT08PDk5OjlENC42Nzc3NDFNLRlHLSAyNDMtMTEtLy8tLi0qLi4nLS05JhooKysxJiImKiomKSgqJyMjKCghJykiJiUrIBsZJiggIiEdIiMdIB8XISUhHRoaHx8VHB3O76tNAAAAgnRSTlMAAQIEBgoLDQ4QFBoaGh4fISUmKCsrLjMzNjk6PEBISU5QVVVaW1xjZGVlam5ydXd7fX1/h4iJi4yOj5GSlpycnZ+foaWmqaqrrK6ur7Czur2/wMTFxcvOztPV1tbX19fX2NnZ2trb3d7g4eLk5efu7vDy9PT19vn5+vz9/v7+/v7+dawK8gAABKlJREFUeNq9lcWW68wVRvepKpHV9m3uvsyMYWZmzjTTPEZeIpzMQpPgMPQzMzOjm9soWQUhLy33ujjKHok+7eLDTqLPc100O0lHBYzJK26E5LMJYxY+z40xfRYARH8y5wY5O9YcWeDKKNiJvPEFAxBlqzfYfSj0/HpizIdfGnBl5AriL6UaGr8puDLmMm28993A93jlEY/13np7VYuEqZmpZqsVHfwgBOAmKNimKle7vc2Bv8ySLZ09lb1LRIm6YzrPY+D8qE//bx/yt30whAc6Tz7zptthyb5w5oOHmilZrIBg6x8K+NGQ8q32TU//czhhyb7z3Q/sChZbFc4zgYBoFcetBU49sXnnROTAdz6sO9YOuwAaHBqApCkhMCoJomY/dufTG9SRQx9Uw/DgM30UO7DJ9HuXQ/DDKoqZ/8I9t4R69pdTGx56rAP+P1gL1la+8qFY+/sr4Drdjb53x06o2iJzzku7wgHaRY1GNhoMS4dDwuD5o44umOliqqnd2ELECHoA4KS51IryhdkYIDizDTr7N4rw8ZhxhDSzKOtAKUU2lxBCPNVQgMIHoCzLEaHUad0w7UGhnQIkdpZ0VJEoPChBicotMRIaaW1JJpa0xHZ11XTbw0QBICLQL0uAVlRbTAwKMR4w6bDgeU9nOu2BV4ColiM3kJjaAiMFIQDSwIkWJcFPG8WYWGswjvEg1zhQRPOSbDXxA1JiCwDKtBwJgJ6woDUAxIlOVBynumFMFsCDwWSr0bRoYCJS8j984iVoJSIKmgYAhJdefLKHWGwdsaMS0CiUAZSA0qJTAwRQyKIbCJRuoi8dNbbkCAYJiASSIiBo9N7R2kyFp6ojJRZwQByHACGgDLh4PCh+trsrdoQwoo5UFgV4oyUIChnPFypoEHWH0xc0bmtQ92VoxQcFOBDQFjTA/4RAWAmPINxc1ZEwvKkkAZQdOVAGFKDLINolyrDrYz6HslNHYP2bFQdSEe87BBSgBan64ly6D+TE22fOyGb3JVvPJ7k/OHeo2A5RSkvJf/FKNp34Xec+hlg1n4p7ovmjzbr7vNLvvrbw8Q89dmQXRbcEgKTRoGsXwalGoBq+tecHL02cY3LgG99ftbNTWZao2u200zh81a+K7VLP/vLXb05EYM/79ra+GlzhDVGSECvwo7KksqBy4S9bL925zY6I6Pz0z0Z9IJcIACoiqtAHyP9w05N9e/kxHn91Od/qGTF4BAgoLMH61jSv3vTWFetLevrjv+txBb6Q/KkXrlhfCv1223M58tRH+4ErRqievVICeXF/4P+PisHoyTZKzPhWK8ZgFABaUKRfbqj3XmwRf7w+Or6czc+bC8Ce3YyRo7PEAkcyDIO394+KVT87t8fkrpvm/aF9+/Cpt9eJmjZlStnCGNUL8z3e/XTR2ttGw9r5U/dfMO8ezNn5veVZjr7G5sfL9NJd72mdl/75jfOrJ07HbQ5tdY8NT4XlV0sFw2JlK8urDXbvm0vVWgy97v0vr2yfagctnfbMbPbGcUWYSqu1tN0BDfhXhtEbfvGpN9PVF9WxN9dhuz3c2Hz9UKc9qDajva/F5ZshWuq5tfJkZ8X+C5rlAVjEmfFsAAAAAElFTkSuQmCC"
                   />
                 </td>
-                 <td><page-title>GPI 12</page-title> Joystick Interface - Video Hub</td>
+                 <td><page-title>GPI 12</page-title> Joystick Interface</td>
               </tr>
             </thead>
             </table>
@@ -994,7 +1087,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         </div>
         </div>
         <div class="overlay" id="overlay1">
-          <button id="retry-video-button" onclick="sendConnectToVideohub()">Reconnect</button>
+          <button id="retry-router-button" onclick="sendConnectToRouter()">Reconnect</button>
         </div>
       </div>
 
@@ -1129,6 +1222,12 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
 #define PACKET_MAX_SIZE 1024 * 4
 
+// Protocol type enum
+enum RouterProtocolType {
+  PROTOCOL_VIDEOHUB = 0,
+  PROTOCOL_SWP08 = 1
+};
+
 // Singleton for easy use of NativeEthernet library
 class Network {
 
@@ -1137,13 +1236,38 @@ public:
   IPAddress ip;
   WebsocketsClient* webSocketClient = nullptr;
 
-  bool isConnectedToVH = false;
-  bool autoConnect = false; // used to auto retry to the videohub
+  bool isConnectedToRouter = false;
+  bool autoConnect = false; // used to auto retry to the router
 
-  Network() { 
+  // Protocol instances
+  VideoHubProtocol videoHubProtocol;
+  SWP08Protocol swp08Protocol;
+  RouterProtocol* currentProtocol = nullptr;
+  RouterProtocolType protocolType = PROTOCOL_VIDEOHUB;
+
+  Network() {
     // Get mac address
     teensyMAC(mac);
+    // Default to VideoHub protocol
+    currentProtocol = &videoHubProtocol;
+  }
 
+  // Set the active protocol
+  void setProtocol(RouterProtocolType type) {
+    protocolType = type;
+    if(type == PROTOCOL_SWP08) {
+      currentProtocol = &swp08Protocol;
+      info("Protocol set to SWP-08");
+    } else {
+      currentProtocol = &videoHubProtocol;
+      info("Protocol set to VideoHub");
+    }
+  }
+
+  // Set SWP-08 level
+  void setSWP08Level(uint8_t level) {
+    swp08Protocol.level = level;
+    info("SWP-08 Level set to ", level);
   }
 
 
@@ -1198,73 +1322,96 @@ public:
 
   }
 
-  IPAddress videohub_ip;
-  uint16_t videohub_port;
+  IPAddress router_ip;
+  uint16_t router_port;
 
-  void connectToVideoHub(IPAddress _ip, uint16_t _port) {
+  void connectToRouter(IPAddress _ip, uint16_t _port) {
 
-    videohub_ip = _ip;
-    videohub_port = _port;
+    router_ip = _ip;
+    router_port = _port;
 
-    videoHubRouter = new EthernetClient();
-    if(videoHubRouter->connect(_ip, _port)) {
-      info("Connected to video hub!");
-      isConnectedToVH = true;
+    routerClient = new EthernetClient();
+    if(routerClient->connect(_ip, _port)) {
+      info("Connected to router (", currentProtocol->getName(), ")!");
+      isConnectedToRouter = true;
       // tell websocket client
       if(webSocketClient != nullptr && webSocketClient->available())
-        sendMessage(webSocketClient, "[\"vh-stat\", true]");
-
-
+        sendMessage(webSocketClient, "[\"router-stat\", true]");
     }
     else {
-      err("Could NOT connect to video hub!");
-      isConnectedToVH = false;
+      err("Could NOT connect to router!");
+      isConnectedToRouter = false;
     }
 
   }
 
-  void reconnectToVideoHub(IPAddress _ip, uint16_t _port) {
-    info("Attempting to reconnect to VideoHub...");
+  void reconnectToRouter(IPAddress _ip, uint16_t _port) {
+    info("Attempting to reconnect to router...");
 
-    videoHubRouter->stop();
+    routerClient->stop();
 
-    connectToVideoHub(_ip, _port);
-    delay(1000); // Wait for telnet
+    connectToRouter(_ip, _port);
+    delay(1000); // Wait for connection
 
   }
 
-  void pollVideoHub() {
-    if(videoHubRouter->available()) {
-      
-      char c = videoHubRouter->read();
-        VideoHub.parse(c);
-        //Serial.print(c); // <- !!!uncomment for videohub messages!!!
-
+  void pollRouter() {
+    if(routerClient->available()) {
+      uint8_t c = routerClient->read();
+      currentProtocol->parse(c);
+      //Serial.print((char)c); // <- uncomment for router debug
     }
 
     if (millis() % 1000 == 0) {
-      if(!videoHubRouter->connected()) {
-        sendMessage(webSocketClient, "[\"vh-stat\", false]");
-        isConnectedToVH = false;
+      if(!routerClient->connected()) {
+        sendMessage(webSocketClient, "[\"router-stat\", false]");
+        isConnectedToRouter = false;
       }
       else {
-        sendMessage(webSocketClient, "[\"vh-stat\", true]");
+        sendMessage(webSocketClient, "[\"router-stat\", true]");
       }
     }
 
   }
 
-  void sendMessageToVideoHub(const char* _message) {
-    if(isConnectedToVH) {
-      info("Sending message to VideoHub:\n", _message);
-      videoHubRouter->write(_message);\
-      VideoHub.expected_resp ++;
+  // Send a route command using the current protocol
+  void sendRouteToRouter(uint16_t dest, uint16_t source) {
+    if(isConnectedToRouter) {
+      currentProtocol->sendRoute(dest, source);
+
+      if(protocolType == PROTOCOL_VIDEOHUB) {
+        VideoHubProtocol* vh = (VideoHubProtocol*)currentProtocol;
+        info("Sending to VideoHub:\n", vh->getRouteMessage());
+        routerClient->write(vh->getRouteMessage());
+      }
+      else if(protocolType == PROTOCOL_SWP08) {
+        SWP08Protocol* swp = (SWP08Protocol*)currentProtocol;
+        info("Sending to SWP-08: ", swp->getRouteMessageLength(), " bytes");
+        routerClient->write(swp->getRouteMessage(), swp->getRouteMessageLength());
+      }
+
+      currentProtocol->expected_resp++;
       info("End of message");
     }
     else {
-      info("VideoHub is not connected! Not sending message...");
+      info("Router is not connected! Not sending message...");
       info("Reconnecting...");
-      reconnectToVideoHub(videohub_ip, videohub_port);
+      reconnectToRouter(router_ip, router_port);
+    }
+  }
+
+  // Legacy method for compatibility - redirects to sendRouteToRouter
+  void sendMessageToRouter(const char* _message) {
+    if(isConnectedToRouter && protocolType == PROTOCOL_VIDEOHUB) {
+      info("Sending message to Router:\n", _message);
+      routerClient->write(_message);
+      currentProtocol->expected_resp++;
+      info("End of message");
+    }
+    else if(!isConnectedToRouter) {
+      info("Router is not connected! Not sending message...");
+      info("Reconnecting...");
+      reconnectToRouter(router_ip, router_port);
     }
   }
 
@@ -1344,7 +1491,7 @@ private:
   byte mac[6];
 
   EthernetServer* webServer;
-  EthernetClient* videoHubRouter;
+  EthernetClient* routerClient;
 
   WebsocketsServer* webSocketServer;
   MessageHandle messageHandle;
