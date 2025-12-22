@@ -4,7 +4,9 @@
       "Bash(git push:*)",
       "Bash(pio run:*)",
       "Bash(pio:*)",
-      "Bash(~/.platformio/penv/bin/pio run:*)"
+      "Bash(~/.platformio/penv/bin/pio run:*)",
+      "Bash(~/.platformio/penv/bin/pio device monitor:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

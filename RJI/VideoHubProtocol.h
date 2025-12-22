@@ -165,16 +165,22 @@ private:
     }
     else if(_c == '\n') {
       if(!wasLastAck) {
-        uint16_t source = static_cast<uint16_t>(std::stoi(currentSource));
-        uint16_t dest = static_cast<uint16_t>(std::stoi(currentDest));
+        // VideoHub format: <dest> <source>
+        // currentSource holds the first number (destination)
+        // currentDest holds the second number (source)
+        uint16_t dest = static_cast<uint16_t>(std::stoi(currentSource));
+        uint16_t source = static_cast<uint16_t>(std::stoi(currentDest));
 
-        if (source == lastSource && dest == lastDest) {
+        if (dest == lastDest && source == lastSource) {
+          // This is an echo of our own command, ignore it
           lastSource = -1;
           lastDest = -1;
+          info("VideoHub: Route confirmed D:", dest, " S:", source);
         }
         else {
-          routingPairs[source] = dest;
-          info("Setting Routing Pair: ", currentSource.c_str(), " ", routingPairs[source]);
+          // Store as routingPairs[dest] = source
+          routingPairs[dest] = source;
+          info("VideoHub: Routing D:", dest, " S:", source);
         }
 
         currentState = VH_EOB;

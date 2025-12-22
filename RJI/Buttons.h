@@ -23,7 +23,6 @@ private:
   int pin;
   ButtonCallback callback;
   bool lastState = false;
-  bool justedStarted = true;
   Bounce* debounced;
 
 public:
@@ -33,10 +32,12 @@ public:
     pinMode(_pin, INPUT_PULLUP);
     pin = _pin;
     callback = _callback;
-    
+
     // Create a debounced button
     debounced = new Bounce(_pin, 40);
 
+    // Consume initial state so first real press works
+    debounced->update();
   }
 
 
@@ -54,10 +55,6 @@ public:
 
     // Debounced Solution
     if(debounced->update()) {
-      if(justedStarted) {
-        justedStarted = false;
-        return;
-      }
       if(debounced->fallingEdge()) {
         callback(pin, true);
       }

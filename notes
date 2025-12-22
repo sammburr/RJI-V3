@@ -1,0 +1,48 @@
+1. Reboot Confirmation Dialog
+Add a JavaScript confirm() before reboot to prevent accidental reboots
+Simple one-line change
+2. Better Error Message
+Replace "???Thats not good???" with a proper message
+Improve validation feedback text
+3. IP Address Validation
+Current regex allows invalid IPs like 999.999.999.999
+Add octet range validation (0-255)
+4. Remove Console.log Statements
+Clean up debug logging left in production code
+5. Add Viewport Meta Tag
+Enable proper mobile scaling with <meta name="viewport" content="width=device-width, initial-scale=1">
+Medium Improvements
+6. Responsive GPI Grid
+Make the 4-column grid responsive for smaller screens
+Add CSS media queries
+7. Loading/Saving Feedback
+Show "Saving..." state when submitting
+Success message after settings are saved
+8. Input Labels
+Add proper <label> elements for accessibility
+Add placeholder text or tooltips explaining fields
+9. Touch Support for GPI Buttons
+Add ontouchstart/ontouchend events for mobile devices
+Currently only mouse events work
+10. Inline Styles to CSS Classes
+Move repetitive inline styles to CSS classes
+Reduces page size and improves maintainability
+Larger Improvements
+11. Dark Mode Support
+Add CSS variables for dark theme
+Toggle switch in UI
+12. Settings Export/Import
+Button to download current settings as JSON
+Button to upload/restore settings
+13. Connection Status Indicator
+Add a persistent status bar showing connection state
+Show router protocol in use
+Show last successful communication time
+14. Auto-reconnect WebSocket
+Currently just shows "Reload" button on disconnect
+Could auto-reconnect with exponential backoff
+
+
+default to dark mode
+add version to footer number starting v3.1.0
+
