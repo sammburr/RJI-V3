@@ -180,6 +180,8 @@ private:
         else {
           // Store as routingPairs[dest] = source
           routingPairs[dest] = source;
+          updatedDest = dest;
+          updatedSource = source;
           info("VideoHub: Routing D:", dest, " S:", source);
         }
 

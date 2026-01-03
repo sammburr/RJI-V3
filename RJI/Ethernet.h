@@ -19,6 +19,7 @@ using namespace websockets;
 #include "RouterProtocol.h"
 #include "VideoHubProtocol.h"
 #include "SWP08Protocol.h"
+#include "TSL31Protocol.h"
 
 typedef void (*MessageHandle)(WebsocketsClient&, WebsocketsMessage);
 
@@ -95,6 +96,9 @@ const char webpageA[] PROGMEM =R"rawLiteral(
                 case "gpi":
                     setGPI(json[1], json[2]);
                     break;
+                case "rts":
+                    updateRTS(json[1], json[2]);
+                    break;
             }
             lastMessageDate = new Date();
             updateStatusBar();
@@ -124,7 +128,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         var routerStatus = isRouterConnected ? 'Connected' : 'Disconnected';
         var lastComm = lastMessageDate ? formatTime(lastMessageDate) : '--:--:--';
         var protocol = document.getElementById('router-protocol');
-        currentProtocol = protocol ? (protocol.selectedIndex === 0 ? 'VideoHub' : 'SWP-08') : currentProtocol;
+        currentProtocol = protocol ? ['VideoHub', 'SWP-08', 'TSL 3.1'][protocol.selectedIndex] || 'VideoHub' : currentProtocol;
 
         statusBar.innerHTML = 'WS: <span class="' + (wsState === 1 ? 'status-ok' : 'status-err') + '">' + wsStatus + '</span> | ' +
             'Router: <span class="' + (isRouterConnected ? 'status-ok' : 'status-err') + '">' + routerStatus + '</span> | ' +
@@ -223,11 +227,33 @@ const char webpageA[] PROGMEM =R"rawLiteral(
     function updateProtocolFields() {
         var protocolSelect = document.getElementById("router-protocol");
         var swp08Fields = document.getElementById("swp08-fields");
+        var tabPosition = document.getElementById("tab-position");
+        var tabGpiPatch = document.getElementById("tab-gpi-patch");
+
         if(protocolSelect && swp08Fields) {
+            // Show SWP-08 fields only when SWP-08 is selected
             if(protocolSelect.selectedIndex == 1) {
                 swp08Fields.style.display = "block";
             } else {
                 swp08Fields.style.display = "none";
+            }
+        }
+
+        // Hide Position and GPI Patch tabs when TSL 3.1 is selected
+        if(protocolSelect && tabPosition && tabGpiPatch) {
+            if(protocolSelect.selectedIndex == 2) {
+                tabPosition.style.display = "none";
+                tabGpiPatch.style.display = "none";
+                // Switch to Network tab if currently on a hidden tab
+                var london = document.getElementById("London");
+                var paris = document.getElementById("Paris");
+                if((london && london.classList.contains("active-tab")) ||
+                   (paris && paris.classList.contains("active-tab"))) {
+                    changeTab(null, 'Tokyo');
+                }
+            } else {
+                tabPosition.style.display = "";
+                tabGpiPatch.style.display = "";
             }
         }
     }
@@ -254,6 +280,20 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
 	}
 
+    function updateRTS(dest, source) {
+        // Update RTS display for any engineer position that matches this destination
+        // Router uses 0-indexed, UI uses 1-indexed
+        for(var i = 0; i < 6; i++) {
+            var destInput = document.getElementById('eng_' + i + '_dest');
+            var rtsSpan = document.getElementById('eng_' + i + '_rts');
+            if(destInput && rtsSpan) {
+                var engDest = parseInt(destInput.value, 10);
+                if(engDest === dest + 1) {
+                    rtsSpan.textContent = source + 1;
+                }
+            }
+        }
+    }
 
 
 
@@ -334,8 +374,12 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         var optSWP = document.createElement("option");
         optSWP.value = "1";
         optSWP.innerHTML = "SWP-08";
+        var optTSL = document.createElement("option");
+        optTSL.value = "2";
+        optTSL.innerHTML = "TSL 3.1";
         protocolSelect.appendChild(optVH);
         protocolSelect.appendChild(optSWP);
+        protocolSelect.appendChild(optTSL);
         protocolDiv.appendChild(protocolLabel);
         protocolDiv.appendChild(protocolSelect);
 
@@ -668,6 +712,19 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         }
         document.getElementById(tabid).style.display = "block";
         evt.currentTarget.className += " active";
+
+        // Pause auto-reconnection when on Network tab
+        if(socket && socket.readyState === WebSocket.OPEN) {
+            if(tabid === 'Tokyo') {
+                console.log('Sending pause_reconnect: true');
+                socket.send('[\"pause_reconnect\", true]');
+            } else {
+                console.log('Sending pause_reconnect: false');
+                socket.send('[\"pause_reconnect\", false]');
+            }
+        } else {
+            console.log('Socket not ready, cannot send pause_reconnect');
+        }
     }
 
     
@@ -1365,34 +1422,34 @@ const char webpageA[] PROGMEM =R"rawLiteral(
       <div class="content">
 
     <div class="tab">
-        <button id="default-tab" class="tablinks" onclick="changeTab(event, 'London')">Position</button>
-        <button class="tablinks" onclick="changeTab(event, 'Paris')">GPI Patch</button>
-        <button class="tablinks" onclick="changeTab(event, 'Tokyo')">Network</button>
+        <button id="tab-position" class="tablinks" onclick="changeTab(event, 'London')">Position</button>
+        <button id="tab-gpi-patch" class="tablinks" onclick="changeTab(event, 'Paris')">GPI Patch</button>
+        <button id="tab-network" class="tablinks" onclick="changeTab(event, 'Tokyo')">Network</button>
     </div>
     
 
     <div id="London" class="tabcontent active-tab">
         <table id="engineers">
             <tr>
-                <th class="hidden">Mask</th><th>Destination</th><th>Logic</th><th></th><th>Name</th>
+                <th class="hidden">Mask</th><th>Destination</th><th>RTS</th><th>Logic</th><th></th><th>Name</th>
             </tr>
             <tr id="eng_0">
-                <td class="hidden"><input id="eng_0_mask" class="mask"></td><td><input id="eng_0_dest" class="route" inputmode="numeric"></td><td><button id="eng_0_logic" onclick="switchLogic(event, 'eng_0_type')">Latch</button></td><td><input class="hidden" id="eng_0_type" type="checkbox"></td><td><input id="eng_0_name" class="name"></td><td><error id="eng_0-error"></error></td>
+                <td class="hidden"><input id="eng_0_mask" class="mask"></td><td><input id="eng_0_dest" class="route" inputmode="numeric"></td><td><span id="eng_0_rts">-</span></td><td><button id="eng_0_logic" onclick="switchLogic(event, 'eng_0_type')">Latch</button></td><td><input class="hidden" id="eng_0_type" type="checkbox"></td><td><input id="eng_0_name" class="name"></td><td><error id="eng_0-error"></error></td>
             </tr>
             <tr id="eng_1">
-                <td class="hidden"><input id="eng_1_mask" class="mask"></td><td><input id="eng_1_dest" class="route" inputmode="numeric"></td><td><button id="eng_1_logic" onclick="switchLogic(event, 'eng_1_type')">Latch</button></td><td><input class="hidden" id="eng_1_type" type="checkbox"></td><td><input id="eng_1_name" class="name"></td><td><error id="eng_1-error"></error></td>
+                <td class="hidden"><input id="eng_1_mask" class="mask"></td><td><input id="eng_1_dest" class="route" inputmode="numeric"></td><td><span id="eng_1_rts">-</span></td><td><button id="eng_1_logic" onclick="switchLogic(event, 'eng_1_type')">Latch</button></td><td><input class="hidden" id="eng_1_type" type="checkbox"></td><td><input id="eng_1_name" class="name"></td><td><error id="eng_1-error"></error></td>
             </tr>
             <tr id="eng_2">
-                <td class="hidden"><input id="eng_2_mask" class="mask"></td><td><input id="eng_2_dest" class="route" inputmode="numeric"></td><td><button id="eng_2_logic" onclick="switchLogic(event, 'eng_2_type')">Latch</button></td><td><input class="hidden" id="eng_2_type" type="checkbox"></td><td><input id="eng_2_name" class="name"></td><td><error id="eng_2-error"></error></td>
+                <td class="hidden"><input id="eng_2_mask" class="mask"></td><td><input id="eng_2_dest" class="route" inputmode="numeric"></td><td><span id="eng_2_rts">-</span></td><td><button id="eng_2_logic" onclick="switchLogic(event, 'eng_2_type')">Latch</button></td><td><input class="hidden" id="eng_2_type" type="checkbox"></td><td><input id="eng_2_name" class="name"></td><td><error id="eng_2-error"></error></td>
             </tr>
             <tr id="eng_3">
-                <td class="hidden"><input id="eng_3_mask" class="mask"></td><td><input id="eng_3_dest" class="route" inputmode="numeric"></td><td><button id="eng_3_logic" onclick="switchLogic(event, 'eng_3_type')">Latch</button></td><td><input class="hidden" id="eng_3_type" type="checkbox"></td><td><input id="eng_3_name" class="name"></td><td><error id="eng_3-error"></error></td>
+                <td class="hidden"><input id="eng_3_mask" class="mask"></td><td><input id="eng_3_dest" class="route" inputmode="numeric"></td><td><span id="eng_3_rts">-</span></td><td><button id="eng_3_logic" onclick="switchLogic(event, 'eng_3_type')">Latch</button></td><td><input class="hidden" id="eng_3_type" type="checkbox"></td><td><input id="eng_3_name" class="name"></td><td><error id="eng_3-error"></error></td>
             </tr>
             <tr id="eng_4">
-                <td class="hidden"><input id="eng_4_mask" class="mask"></td><td><input id="eng_4_dest" class="route" inputmode="numeric"></td><td><button id="eng_4_logic" onclick="switchLogic(event, 'eng_4_type')">Latch</button></td><td><input class="hidden" id="eng_4_type" type="checkbox"></td><td><input id="eng_4_name" class="name"></td><td><error id="eng_4-error"></error></td>
+                <td class="hidden"><input id="eng_4_mask" class="mask"></td><td><input id="eng_4_dest" class="route" inputmode="numeric"></td><td><span id="eng_4_rts">-</span></td><td><button id="eng_4_logic" onclick="switchLogic(event, 'eng_4_type')">Latch</button></td><td><input class="hidden" id="eng_4_type" type="checkbox"></td><td><input id="eng_4_name" class="name"></td><td><error id="eng_4-error"></error></td>
             </tr>
             <tr id="eng_5">
-                <td class="hidden"><input id="eng_5_mask" class="mask"></td><td><input id="eng_5_dest" class="route" inputmode="numeric"></td><td><button id="eng_5_logic" onclick="switchLogic(event, 'eng_5_type')">Latch</button></td><td><input class="hidden" id="eng_5_type" type="checkbox"></td><td><input id="eng_5_name" class="name"></td><td><error id="eng_5-error"></error></td>
+                <td class="hidden"><input id="eng_5_mask" class="mask"></td><td><input id="eng_5_dest" class="route" inputmode="numeric"></td><td><span id="eng_5_rts">-</span></td><td><button id="eng_5_logic" onclick="switchLogic(event, 'eng_5_type')">Latch</button></td><td><input class="hidden" id="eng_5_type" type="checkbox"></td><td><input id="eng_5_name" class="name"></td><td><error id="eng_5-error"></error></td>
             </tr>
         </table>
     
@@ -1456,7 +1513,20 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 // Protocol type enum
 enum RouterProtocolType {
   PROTOCOL_VIDEOHUB = 0,
-  PROTOCOL_SWP08 = 1
+  PROTOCOL_SWP08 = 1,
+  PROTOCOL_TSL31 = 2
+};
+
+// Connection state machine for non-blocking reconnection
+enum ConnectionState {
+  CONN_IDLE = 0,           // Not trying to connect
+  CONN_DISCONNECTING,      // Stopping old connection
+  CONN_WAIT_DISCONNECT,    // Waiting after disconnect
+  CONN_CONNECTING,         // Attempting connection
+  CONN_WAIT_CONNECT,       // Waiting for connection to settle
+  CONN_POLLING_DESTS,      // Polling configured destinations (SWP-08)
+  CONN_WAIT_POLL_RESP,     // Waiting for poll response
+  CONN_CONNECTED           // Fully connected
 };
 
 // Singleton for easy use of NativeEthernet library
@@ -1469,10 +1539,19 @@ public:
 
   bool isConnectedToRouter = false;
   bool autoConnect = false; // used to auto retry to the router
+  bool pauseReconnect = false; // Pause auto-reconnection (e.g., when on Network tab)
+  unsigned long lastKeepaliveTime = 0;
+  const unsigned long keepaliveInterval = 5000; // Poll every 5 seconds
+
+  // Non-blocking connection state machine
+  ConnectionState connState = CONN_IDLE;
+  unsigned long connStateTime = 0;  // When we entered current state
+  uint8_t pollDestIndex = 0;        // Current destination being polled
 
   // Protocol instances
   VideoHubProtocol videoHubProtocol;
   SWP08Protocol swp08Protocol;
+  TSL31Protocol tsl31Protocol;
   RouterProtocol* currentProtocol = nullptr;
   RouterProtocolType protocolType = PROTOCOL_VIDEOHUB;
 
@@ -1489,6 +1568,9 @@ public:
     if(type == PROTOCOL_SWP08) {
       currentProtocol = &swp08Protocol;
       info("Protocol set to SWP-08");
+    } else if(type == PROTOCOL_TSL31) {
+      currentProtocol = &tsl31Protocol;
+      info("Protocol set to TSL 3.1");
     } else {
       currentProtocol = &videoHubProtocol;
       info("Protocol set to VideoHub");
@@ -1575,82 +1657,238 @@ public:
       if(webSocketClient != nullptr && webSocketClient->available())
         sendMessage(webSocketClient, "[\"router-stat\", true]");
 
-      // For SWP-08, poll the configured destinations to populate routing pairs
+      // For SWP-08, start non-blocking destination polling
       if(protocolType == PROTOCOL_SWP08) {
-        delay(100);  // Let connection settle
-        pollConfiguredDestinations();
+        connState = CONN_WAIT_CONNECT;
+        connStateTime = millis();
+        pollDestIndex = 0;
+      } else {
+        connState = CONN_CONNECTED;
       }
     }
     else {
       err("Could NOT connect to router!");
       isConnectedToRouter = false;
+      connState = CONN_IDLE;
     }
 
   }
 
-  // Poll the router for current state of all configured engineer destinations
-  void pollConfiguredDestinations() {
-    if(protocolType != PROTOCOL_SWP08 || routerClient == nullptr) return;
+  // Poll the router for current state of all configured engineer destinations (legacy blocking version - kept for reference)
+  // Now handled by pollConnectionStateMachine() in a non-blocking way
 
-    info("Polling configured destinations...");
-
-    // Wait for connection to be fully established
-    delay(500);
-
-    // Loop through all 6 engineers and interrogate their destinations
-    for(uint8_t i = 0; i < 6; i++) {
-      // Check connection is still valid before each send
-      if(!routerClient->connected()) {
-        err("Connection lost during polling");
-        isConnectedToRouter = false;
-        return;
+  // Non-blocking connection state machine - call this from pollRouter()
+  void pollConnectionStateMachine() {
+    // If paused, abort any in-progress reconnection
+    if(pauseReconnect) {
+      if(connState != CONN_IDLE && connState != CONN_CONNECTED) {
+        info("Reconnection aborted (paused)");
+        connState = CONN_IDLE;
       }
+      return;
+    }
 
-      byte dest[1];
-      Settings.read(dest, 1, Var_Eng_0 + 2 + ((int)i * 14));
+    unsigned long now = millis();
+    unsigned long elapsed = now - connStateTime;
 
-      // Only poll if destination is configured (non-zero)
-      if(*dest > 0) {
-        info("Interrogating destination: ", *dest);
-        swp08Protocol.interrogate(*dest);
-        routerClient->write(swp08Protocol.getRouteMessage(), swp08Protocol.getRouteMessageLength());
-        delay(100);  // Delay between queries to let router respond
-      }
+    switch(connState) {
+      case CONN_IDLE:
+      case CONN_CONNECTED:
+        // Nothing to do
+        break;
+
+      case CONN_DISCONNECTING:
+        // Stop the old connection
+        if(routerClient != nullptr) {
+          routerClient->stop();
+          delete routerClient;
+          routerClient = nullptr;
+        }
+        connState = CONN_WAIT_DISCONNECT;
+        connStateTime = now;
+        break;
+
+      case CONN_WAIT_DISCONNECT:
+        // Wait 100ms before reconnecting
+        if(elapsed >= 100) {
+          connState = CONN_CONNECTING;
+          connStateTime = now;
+        }
+        break;
+
+      case CONN_CONNECTING:
+        // Attempt connection
+        routerClient = new EthernetClient();
+        if(routerClient->connect(router_ip, router_port)) {
+          info("Connected to router (", currentProtocol->getName(), ")!");
+          isConnectedToRouter = true;
+          sendMessage(webSocketClient, "[\"router-stat\", true]");
+
+          if(protocolType == PROTOCOL_SWP08) {
+            connState = CONN_WAIT_CONNECT;
+            pollDestIndex = 0;
+          } else {
+            connState = CONN_CONNECTED;
+          }
+        } else {
+          err("Could NOT connect to router!");
+          isConnectedToRouter = false;
+          connState = CONN_IDLE;
+        }
+        connStateTime = now;
+        break;
+
+      case CONN_WAIT_CONNECT:
+        // Wait 500ms for connection to settle before polling destinations
+        if(elapsed >= 500) {
+          connState = CONN_POLLING_DESTS;
+          connStateTime = now;
+          pollDestIndex = 0;
+          info("Polling configured destinations...");
+        }
+        break;
+
+      case CONN_POLLING_DESTS:
+        // Poll one destination at a time
+        if(!routerClient || !routerClient->connected()) {
+          err("Connection lost during polling");
+          isConnectedToRouter = false;
+          connState = CONN_IDLE;
+          break;
+        }
+
+        // Find next configured destination
+        while(pollDestIndex < 6) {
+          byte dest[1];
+          Settings.read(dest, 1, Var_Eng_0 + 2 + ((int)pollDestIndex * 14));
+
+          if(*dest > 0) {
+            info("Interrogating destination: ", *dest);
+            swp08Protocol.interrogate(*dest);
+            routerClient->write(swp08Protocol.getRouteMessage(), swp08Protocol.getRouteMessageLength());
+            connState = CONN_WAIT_POLL_RESP;
+            connStateTime = now;
+            return;
+          }
+          pollDestIndex++;
+        }
+
+        // All destinations polled
+        info("Finished polling destinations");
+        connState = CONN_CONNECTED;
+        break;
+
+      case CONN_WAIT_POLL_RESP:
+        // Read any available response data
+        while(routerClient && routerClient->available()) {
+          uint8_t c = routerClient->read();
+          swp08Protocol.parse(c);
+        }
+
+        // Check for RTS update
+        if(swp08Protocol.updatedDest >= 0) {
+          char rtsMsg[64];
+          snprintf(rtsMsg, sizeof(rtsMsg), "[\"rts\", %d, %d]",
+                   swp08Protocol.updatedDest, swp08Protocol.updatedSource);
+          sendMessage(webSocketClient, rtsMsg);
+          swp08Protocol.updatedDest = -1;
+          swp08Protocol.updatedSource = -1;
+        }
+
+        // Wait up to 200ms for response, then move to next destination
+        if(elapsed >= 200) {
+          pollDestIndex++;
+          connState = CONN_POLLING_DESTS;
+          connStateTime = now;
+        }
+        break;
     }
   }
 
+  // Start non-blocking reconnection process
   void reconnectToRouter(IPAddress _ip, uint16_t _port) {
-    info("Attempting to reconnect to router...");
-
-    if(routerClient != nullptr) {
-      routerClient->stop();
-      delete routerClient;
-      routerClient = nullptr;
+    // Don't reconnect if paused (e.g., user is on Network tab)
+    if(pauseReconnect) {
+      return;
     }
-    delay(100); // Brief delay before reconnecting
 
-    connectToRouter(_ip, _port);
-    delay(500); // Wait for connection to stabilize
+    // Don't start another reconnection if one is in progress
+    if(connState != CONN_IDLE && connState != CONN_CONNECTED) {
+      return;
+    }
 
+    info("Starting reconnection to router...");
+    router_ip = _ip;
+    router_port = _port;
+    connState = CONN_DISCONNECTING;
+    connStateTime = millis();
   }
 
   void pollRouter() {
+    // Always run the connection state machine (handles reconnection)
+    pollConnectionStateMachine();
+
+    // If we're in the middle of connecting/polling, don't do normal polling
+    if(connState != CONN_IDLE && connState != CONN_CONNECTED) {
+      return;
+    }
+
     if(routerClient == nullptr) return;
 
+    // Read any available data from router
     if(routerClient->available()) {
       uint8_t c = routerClient->read();
       currentProtocol->parse(c);
       //Serial.print((char)c); // <- uncomment for router debug
     }
 
-    if (millis() % 1000 == 0) {
+    // Check for routing pair updates and send to web UI
+    if(currentProtocol->updatedDest >= 0) {
+      char rtsMsg[64];
+      snprintf(rtsMsg, sizeof(rtsMsg), "[\"rts\", %d, %d]",
+               currentProtocol->updatedDest, currentProtocol->updatedSource);
+      sendMessage(webSocketClient, rtsMsg);
+      currentProtocol->updatedDest = -1;
+      currentProtocol->updatedSource = -1;
+    }
+
+    // Periodic keepalive and connection check (skip if paused or TSL 3.1)
+    // TSL 3.1 is send-only, no keepalive or connection monitoring needed
+    if(pauseReconnect || protocolType == PROTOCOL_TSL31) {
+      return;
+    }
+
+    unsigned long now = millis();
+    if(now - lastKeepaliveTime >= keepaliveInterval) {
+      lastKeepaliveTime = now;
+
       if(!routerClient->connected()) {
         sendMessage(webSocketClient, "[\"router-stat\", false]");
         isConnectedToRouter = false;
+        info("Router connection lost, starting reconnect...");
+        reconnectToRouter(router_ip, router_port);
       }
       else {
         sendMessage(webSocketClient, "[\"router-stat\", true]");
         isConnectedToRouter = true;
+
+        // Send keepalive poll based on protocol
+        if(protocolType == PROTOCOL_VIDEOHUB) {
+          // VideoHub: send PING command
+          routerClient->write("PING:\n\n");
+        }
+        else if(protocolType == PROTOCOL_SWP08) {
+          // SWP-08: interrogate first configured destination
+          for(uint8_t i = 0; i < 6; i++) {
+            byte dest[1];
+            Settings.read(dest, 1, Var_Eng_0 + 2 + ((int)i * 14));
+            if(*dest > 0) {
+              swp08Protocol.interrogate(*dest);
+              routerClient->write(swp08Protocol.getRouteMessage(), swp08Protocol.getRouteMessageLength());
+              break; // Only poll one destination for keepalive
+            }
+          }
+        }
       }
     }
 
@@ -1680,8 +1918,8 @@ public:
     else {
       isConnectedToRouter = false;
       info("Router is not connected! Not sending message...");
-      info("Reconnecting...");
-      reconnectToRouter(router_ip, router_port);
+      info("Starting reconnection...");
+      reconnectToRouter(router_ip, router_port);  // Non-blocking now
     }
   }
 
@@ -1695,7 +1933,36 @@ public:
     }
     else if(!isConnectedToRouter) {
       info("Router is not connected! Not sending message...");
-      info("Reconnecting...");
+      info("Starting reconnection...");
+      reconnectToRouter(router_ip, router_port);  // Non-blocking now
+    }
+  }
+
+  // Send TSL 3.1 tally message
+  // @param address - TSL display address (0-126), typically maps to GPI number
+  // @param tallyOn - true for tally on, false for off
+  void sendTallyToRouter(uint8_t address, bool tallyOn) {
+    if(protocolType != PROTOCOL_TSL31) {
+      return;  // Only for TSL 3.1 protocol
+    }
+
+    // TSL 3.1 is send-only, so we can't rely on connected() status
+    // Just try to send if we have a client
+    if(routerClient != nullptr) {
+      tsl31Protocol.sendTally(address, tallyOn);
+      size_t written = routerClient->write(tsl31Protocol.getRouteMessage(), tsl31Protocol.getRouteMessageLength());
+      if(written == tsl31Protocol.getRouteMessageLength()) {
+        isConnectedToRouter = true;
+      } else {
+        // Write failed, need to reconnect
+        isConnectedToRouter = false;
+        info("TSL 3.1 write failed, reconnecting...");
+        reconnectToRouter(router_ip, router_port);
+      }
+    }
+    else {
+      isConnectedToRouter = false;
+      info("No router client, reconnecting...");
       reconnectToRouter(router_ip, router_port);
     }
   }
@@ -1749,6 +2016,9 @@ public:
       serializeJson(Settings.getJson(), buffer);
       sendMessage(webSocketClient, buffer);
 
+      // Send current RTS values for all configured destinations
+      sendCurrentRTSValues();
+
     }
 
     // Poll the current client
@@ -1769,6 +2039,27 @@ public:
       _client->send(_message);
     }
 
+  }
+
+  // Send current RTS values for all configured destinations
+  void sendCurrentRTSValues() {
+    if(currentProtocol == nullptr) return;
+
+    for(uint8_t i = 0; i < 6; i++) {
+      byte dest[1];
+      Settings.read(dest, 1, Var_Eng_0 + 2 + ((int)i * 14));
+
+      if(*dest > 0) {
+        // dest is 1-indexed in settings, routingPairs uses 0-indexed
+        uint16_t dest0 = *dest - 1;
+        uint16_t source = currentProtocol->routingPairs[dest0];
+
+        // Only send if we have a valid source (non-zero or explicitly set)
+        char rtsMsg[64];
+        snprintf(rtsMsg, sizeof(rtsMsg), "[\"rts\", %d, %d]", dest0, source);
+        sendMessage(webSocketClient, rtsMsg);
+      }
+    }
   }
 
 

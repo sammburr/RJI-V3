@@ -48,7 +48,22 @@ public:
   // Parse a button pin and state to the routing logic
   void parseButton(int _pin, bool _state) {
 
-    // First check which engineer this button belongs to 
+    int buttonIndex = _pin - 29;  // 0-11 for the 12 GPIs
+
+    // TSL 3.1 mode: simple tally on/off for each GPI
+    if(Network.protocolType == PROTOCOL_TSL31) {
+      // Read the TSL address for this button from the source field
+      // (reusing the source field as TSL address)
+      uint16_t tslAddress;
+      Settings.read_16bit(tslAddress, Var_Button_0_Source + (buttonIndex * 2));
+
+      // Send tally on for press, tally off for release
+      Network.sendTallyToRouter((uint8_t)tslAddress, _state);
+      return;
+    }
+
+    // VideoHub / SWP-08 mode: routing logic
+    // First check which engineer this button belongs to
     // loop through all the engineers
     for(byte i=0; i<6; i++) {
 
@@ -61,13 +76,13 @@ public:
       char name[10];
       Settings.read(name, 10, Var_Eng_0 + 4 + ((int)i*14));
 
-      if(checkMask(mask, _pin - 29)) {
+      if(checkMask(mask, buttonIndex)) {
         // This button belongs to this engineer
         // if the _state is true (button down), eitherway we send it to the router
         if(_state) {
           // Read the source from settings
           uint16_t source;
-          Settings.read_16bit(source, Var_Button_0_Source + ((int)(_pin - 29)*2));
+          Settings.read_16bit(source, Var_Button_0_Source + (buttonIndex * 2));
 
           Network.currentProtocol->lastSource = *dest;
           Network.currentProtocol->lastDest = source;
@@ -77,7 +92,7 @@ public:
 
           if (*type){
             // Add this to the top of this engineer's stack
-            lists[i].push_front(_pin - 29);
+            lists[i].push_front(buttonIndex);
           }
 
         }
@@ -86,7 +101,7 @@ public:
           // Remove from the list and use the top button
           // as the current route
 
-          lists[i].remove(_pin - 29);
+          lists[i].remove(buttonIndex);
 
           // Now if the list is empty, route to the current mapping set by the router
           uint16_t source;

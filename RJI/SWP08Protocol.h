@@ -337,6 +337,8 @@ private:
         info("SWP08: Route confirmed D:", dest, " S:", source);
       } else {
         routingPairs[dest] = source;
+        updatedDest = dest;
+        updatedSource = source;
         info("SWP08: Crosspoint tally D:", dest, " S:", source);
       }
     }
@@ -355,6 +357,8 @@ private:
         info("SWP08: Route confirmed D:", dest, " S:", source);
       } else {
         routingPairs[dest] = source;
+        updatedDest = dest;
+        updatedSource = source;
         info("SWP08: Crosspoint tally (ext) D:", dest, " S:", source);
       }
     }

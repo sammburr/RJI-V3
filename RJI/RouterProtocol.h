@@ -35,6 +35,10 @@ public:
   int16_t lastSource = -1;
   int16_t lastDest = -1;
 
+  // Track routing pair updates for UI notification
+  int16_t updatedDest = -1;  // Set when a routing pair is updated
+  int16_t updatedSource = -1;
+
   // Expected responses counter
   int expected_resp = 0;
 

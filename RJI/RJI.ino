@@ -339,6 +339,9 @@ void websocketMessageCallback(WebsocketsClient& _client, WebsocketsMessage _mess
   } else if(header == "gpi_up") {
     buttonCallback(json[1].as<int>() + 28, false);
 
+  } else if(header == "pause_reconnect") {
+    Network.pauseReconnect = json[1].as<bool>();
+    info("Pause reconnect: ", Network.pauseReconnect ? "true" : "false");
 
   }
 
