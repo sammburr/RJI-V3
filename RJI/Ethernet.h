@@ -5,15 +5,20 @@
 #define Ethernet_h
 
 
-// This header acts as an interface for the NativeEthernet library
-// Contating helper functions, classes and definitions for hosting the webpage/
+// This header acts as an interface for the QNEthernet library
+// with WebSockets2_Generic for WebSocket support
+// Containing helper functions, classes and definitions for hosting the webpage/
 // WebSockets server and connecting to the BlackMagic router
 
 
-#include <NativeEthernet.h>
-#include <ArduinoWebsockets.h>
-using namespace websockets;
+// QNEthernet for Teensy 4.1
+#include <QNEthernet.h>
+#include <QNMDNS.h>
+using namespace qindesign::network;
 
+// WebSockets2_Generic for WebSocket server
+#include <WebSockets2_Generic.h>
+using namespace websockets2_generic;
 
 #include "Debug.h"
 #include "RouterProtocol.h"
@@ -21,7 +26,8 @@ using namespace websockets;
 #include "SWP08Protocol.h"
 #include "TSL31Protocol.h"
 
-typedef void (*MessageHandle)(WebsocketsClient&, WebsocketsMessage);
+// Message callback function pointer type
+typedef void (*WebSocketMessageCallback)(const char* data, size_t len);
 
 
 // The following are raw literal strings that make up the webpage
@@ -36,17 +42,19 @@ const char webpageA[] PROGMEM =R"rawLiteral(
     <script>
 
     var socket;
-    var lastMessageDate;
+    var lastMessageDate = new Date();  // Initialize to now to prevent early timeout
     var reconnectAttempts = 0;
     var maxReconnectAttempts = 10;
     var isRouterConnected = false;
     var currentProtocol = "Unknown";
+    var fwUpdateInProgress = false;  // Global flag for firmware update
 
     function connectWebSocket() {
         socket = new WebSocket("ws://" + window.location.hostname + ":8080");
 
         socket.addEventListener('open', function() {
             reconnectAttempts = 0;
+            lastMessageDate = new Date();  // Reset on connect to prevent immediate timeout
             updateStatusBar();
         });
 
@@ -99,6 +107,12 @@ const char webpageA[] PROGMEM =R"rawLiteral(
                 case "rts":
                     updateRTS(json[1], json[2]);
                     break;
+                case "fw-progress":
+                case "fw-error":
+                case "fw-ready":
+                case "fw-flashing":
+                    handleFirmwareMessage(json);
+                    break;
             }
             lastMessageDate = new Date();
             updateStatusBar();
@@ -108,6 +122,11 @@ const char webpageA[] PROGMEM =R"rawLiteral(
     }
 
     function checkConnection() {
+        // Skip connection check during firmware update
+        if(fwUpdateInProgress) {
+            updateStatusBar();
+            return;
+        }
         const currDate = new Date();
         if(lastMessageDate && currDate - lastMessageDate > 3000) {
             if(socket && socket.readyState === WebSocket.OPEN) {
@@ -342,13 +361,13 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
 
     var inputObjects = [
-        { id:"interface-ip", input_type:"ip",  label:"Interface IP ", error_message:" Invalid IP address"},
-        { id:"interface-gw", input_type:"ip",  label:"Interface Gateway IP ", error_message:" Invalid IP address"},
-        { id:"interface-sub", input_type:"ip",  label:"Interface Subnet Mask ", error_message:" Invalid subnet mask"},
-        { id:"interface-dhcp", input_type:"bool", label:"DHCP ", error_message:"" },
-        { id:"router-ip", input_type:"ip", label:"Router IP ", error_message:" Invalid IP address"},
-        { id:"router-port", input_type:"port", label:"Router Port ", error_message:" Invalid port (0-65535)"},
-        { id:"swp08-level", input_type:"level", label:"SWP-08 Level ", error_message:" Invalid level (0-15)"}
+        { id:"interface-ip", input_type:"ip",  label:"Interface IP ", error_message:" Invalid IP address", requiresReboot: true},
+        { id:"interface-gw", input_type:"ip",  label:"Interface Gateway IP ", error_message:" Invalid IP address", requiresReboot: true},
+        { id:"interface-sub", input_type:"ip",  label:"Interface Subnet Mask ", error_message:" Invalid subnet mask", requiresReboot: true},
+        { id:"interface-dhcp", input_type:"bool", label:"DHCP ", error_message:"", requiresReboot: true },
+        { id:"router-ip", input_type:"ip", label:"Router IP ", error_message:" Invalid IP address", requiresReboot: false},
+        { id:"router-port", input_type:"port", label:"Router Port ", error_message:" Invalid port (0-65535)", requiresReboot: false},
+        { id:"swp08-level", input_type:"level", label:"SWP-08 Level ", error_message:" Invalid level (0-15)", requiresReboot: false}
     ];
 
 
@@ -419,12 +438,20 @@ const char webpageA[] PROGMEM =R"rawLiteral(
             inputObjectInput.classList.add(obj.input_type);
             inputObjectInput.id = obj.id
             inputObjectError.id = obj.id + "-error";
-            //inputObjectError.innerHTML = obj.error_message;
 
             // Add objects
             inputObject.appendChild(inputObjectLabel);
             inputObject.appendChild(inputObjectInput);
             inputObject.appendChild(inputObjectError);
+
+            // Add reboot indicator for settings that require restart
+            if(obj.requiresReboot) {
+                var rebootIndicator = document.createElement("span");
+                rebootIndicator.className = "reboot-indicator";
+                rebootIndicator.title = "Requires reboot to take effect";
+                rebootIndicator.innerHTML = "*";
+                inputObjectLabel.appendChild(rebootIndicator);
+            }
 
             // Put SWP-08 level in separate container
             if(obj.id == "swp08-level") {
@@ -445,6 +472,12 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
         // Add the SWP-08 fields container
         tokyo.appendChild(swp08Container);
+
+        // Add reboot legend at bottom of Network settings
+        var legend = document.createElement("div");
+        legend.className = "reboot-legend";
+        legend.innerHTML = '<span class="reboot-indicator">*</span> Requires reboot to take effect';
+        tokyo.appendChild(legend);
 
         // var button = document.createElement("button");
         // button.innerHTML = "submit";
@@ -712,19 +745,6 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         }
         document.getElementById(tabid).style.display = "block";
         evt.currentTarget.className += " active";
-
-        // Pause auto-reconnection when on Network tab
-        if(socket && socket.readyState === WebSocket.OPEN) {
-            if(tabid === 'Tokyo') {
-                console.log('Sending pause_reconnect: true');
-                socket.send('[\"pause_reconnect\", true]');
-            } else {
-                console.log('Sending pause_reconnect: false');
-                socket.send('[\"pause_reconnect\", false]');
-            }
-        } else {
-            console.log('Socket not ready, cannot send pause_reconnect');
-        }
     }
 
     
@@ -939,6 +959,169 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         input.click();
     }
 
+    // Firmware update functions
+    var fwTotalLines = 0;
+    var fwSentLines = 0;
+
+    function selectFirmware() {
+        if(fwUpdateInProgress) {
+            alert('Firmware update already in progress');
+            return;
+        }
+        document.getElementById('hexFileInput').click();
+    }
+
+    function handleFirmwareFile(input) {
+        if(!input.files || !input.files[0]) return;
+
+        var file = input.files[0];
+        if(!file.name.endsWith('.hex')) {
+            alert('Please select a .hex file');
+            return;
+        }
+
+        document.getElementById('fw-filename').textContent = file.name;
+        document.getElementById('fw-filesize').textContent = (file.size / 1024).toFixed(1) + ' KB';
+        document.getElementById('fw-upload-btn').disabled = false;
+        document.getElementById('fw-status').textContent = 'Ready to upload';
+        document.getElementById('fw-status').className = '';
+    }
+
+    var fwStartConfirmed = false;
+
+    async function uploadFirmware() {
+        var fileInput = document.getElementById('hexFileInput');
+        if(!fileInput.files || !fileInput.files[0]) {
+            alert('Please select a firmware file first');
+            return;
+        }
+
+        if(!socket || socket.readyState !== WebSocket.OPEN) {
+            alert('WebSocket not connected');
+            return;
+        }
+
+        fwUpdateInProgress = true;
+        fwStartConfirmed = false;
+        document.getElementById('fw-upload-btn').disabled = true;
+        document.getElementById('fw-select-btn').disabled = true;
+        document.getElementById('fw-status').textContent = 'Starting update...';
+        document.getElementById('fw-status').className = '';
+        document.getElementById('fw-progress-bar').style.width = '0%';
+        document.getElementById('fw-progress-text').textContent = '0%';
+
+        try {
+            var file = fileInput.files[0];
+            var text = await file.text();
+            var lines = text.split('\n').filter(function(l) { return l.trim().startsWith(':'); });
+
+            fwTotalLines = lines.length;
+            fwSentLines = 0;
+
+            // Start the update and wait for confirmation
+            console.log('Sending fw-start...');
+            socket.send(JSON.stringify(["fw-start"]));
+
+            // Give device time to process fw-start
+            await new Promise(function(r) { setTimeout(r, 500); });
+
+            // Wait for fw-progress confirmation (indicates startUpdate succeeded)
+            var waitCount = 0;
+            while(!fwStartConfirmed && waitCount < 100) {
+                await new Promise(function(r) { setTimeout(r, 100); });
+                waitCount++;
+                if(waitCount % 10 === 0) {
+                    console.log('Waiting for start confirmation... ' + waitCount);
+                }
+            }
+
+            if(!fwStartConfirmed) {
+                throw new Error('Timeout waiting for update start confirmation. Check serial for fw-start message.');
+            }
+
+            console.log('Start confirmed, sending ' + lines.length + ' lines...');
+
+            // Additional delay before sending data
+            await new Promise(function(r) { setTimeout(r, 200); });
+
+            // Send lines one at a time with delay to prevent overwhelming device
+            // Flash erase takes ~30-100ms per sector, so we need to pace the upload
+            for(var i = 0; i < lines.length; i++) {
+                // Check socket is still open
+                if(socket.readyState !== WebSocket.OPEN) {
+                    throw new Error('WebSocket disconnected during upload');
+                }
+
+                socket.send(JSON.stringify(["fw-data", lines[i].trim()]));
+                fwSentLines++;
+
+                // Update progress every 50 lines
+                if(i % 50 === 0 || i === lines.length - 1) {
+                    var pct = Math.round((fwSentLines / fwTotalLines) * 100);
+                    document.getElementById('fw-progress-bar').style.width = pct + '%';
+                    document.getElementById('fw-progress-text').textContent = pct + '%';
+                    document.getElementById('fw-status').textContent = 'Uploading... ' + fwSentLines + '/' + fwTotalLines + ' lines';
+                }
+
+                // Delay to let device process and maintain network
+                // This is critical - without it, the device gets overwhelmed
+                if(i % 10 === 0) {
+                    await new Promise(function(r) { setTimeout(r, 50); });
+                }
+            }
+
+            // Wait a bit before sending end
+            await new Promise(function(r) { setTimeout(r, 500); });
+
+            // Finish the update
+            document.getElementById('fw-status').textContent = 'Verifying firmware...';
+            socket.send(JSON.stringify(["fw-end"]));
+
+        } catch(err) {
+            document.getElementById('fw-status').textContent = 'Error: ' + err.message;
+            document.getElementById('fw-status').className = 'fw-error';
+            fwUpdateInProgress = false;
+            document.getElementById('fw-upload-btn').disabled = false;
+            document.getElementById('fw-select-btn').disabled = false;
+        }
+    }
+
+    function handleFirmwareMessage(msg) {
+        switch(msg[0]) {
+            case 'fw-progress':
+                var lines = msg[1];
+                var bytes = msg[2];
+                // First fw-progress (0,0) confirms startUpdate succeeded
+                if(lines === 0 && bytes === 0) {
+                    fwStartConfirmed = true;
+                    document.getElementById('fw-status').textContent = 'Update started, uploading...';
+                } else {
+                    document.getElementById('fw-status').textContent = 'Received: ' + lines + ' lines, ' + bytes + ' bytes';
+                }
+                break;
+
+            case 'fw-error':
+                document.getElementById('fw-status').textContent = 'Error: ' + msg[1];
+                document.getElementById('fw-status').className = 'fw-error';
+                fwUpdateInProgress = false;
+                document.getElementById('fw-upload-btn').disabled = false;
+                document.getElementById('fw-select-btn').disabled = false;
+                break;
+
+            case 'fw-ready':
+                document.getElementById('fw-status').textContent = 'Firmware verified! Flashing...';
+                document.getElementById('fw-status').className = 'fw-success';
+                document.getElementById('fw-progress-bar').style.width = '100%';
+                document.getElementById('fw-progress-text').textContent = '100%';
+                break;
+
+            case 'fw-flashing':
+                document.getElementById('fw-status').textContent = 'Flashing firmware... Device will reboot.';
+                document.getElementById('fw-status').className = 'fw-success';
+                break;
+        }
+    }
+
     function applySettings(settings) {
         // Apply network settings
         inputObjects.forEach(function(obj) {
@@ -1089,6 +1272,19 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         font-weight: bold;
     }
 
+    .reboot-indicator {
+        color: var(--dark-orange-accent);
+        font-weight: bold;
+        margin-left: 2px;
+        cursor: help;
+    }
+
+    .reboot-legend {
+        font-size: 11px;
+        color: var(--dark-gray-accent);
+        margin: 10px 0 5px 0;
+        padding: 5px;
+    }
 
     error {
         color: var(--dark-orange-accent);
@@ -1326,6 +1522,83 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         float: right;
     }
 
+    /* Firmware update styles */
+    .fw-section {
+        padding: 10px;
+    }
+
+    .fw-section h3 {
+        margin-top: 0;
+    }
+
+    .fw-file-info {
+        margin: 10px 0;
+        padding: 8px;
+        background: var(--light-gray-accent);
+        border-radius: 4px;
+    }
+
+    .fw-progress-container {
+        margin: 15px 0;
+        background: var(--light-gray-accent);
+        border-radius: 4px;
+        height: 24px;
+        position: relative;
+    }
+
+    .fw-progress-bar {
+        background: var(--green-accent);
+        height: 100%;
+        border-radius: 4px;
+        width: 0%;
+        transition: width 0.2s;
+    }
+
+    .fw-progress-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    .fw-status {
+        margin: 10px 0;
+        padding: 8px;
+        border-radius: 4px;
+    }
+
+    .fw-error {
+        background: var(--orange-accent);
+        color: #fff;
+    }
+
+    .fw-success {
+        background: var(--green-accent);
+    }
+
+    .fw-buttons {
+        margin-top: 10px;
+    }
+
+    .fw-buttons button {
+        margin-right: 10px;
+        padding: 10px 20px;
+        font-size: 14px;
+        cursor: pointer;
+    }
+
+    .fw-buttons button:disabled {
+        background-color: #555;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    .fw-buttons button:not(:disabled):hover {
+        opacity: 0.9;
+    }
+
     img {
       padding: 10px;
     }
@@ -1425,6 +1698,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         <button id="tab-position" class="tablinks" onclick="changeTab(event, 'London')">Position</button>
         <button id="tab-gpi-patch" class="tablinks" onclick="changeTab(event, 'Paris')">GPI Patch</button>
         <button id="tab-network" class="tablinks" onclick="changeTab(event, 'Tokyo')">Network</button>
+        <button id="tab-firmware" class="tablinks" onclick="changeTab(event, 'Firmware')">Firmware</button>
     </div>
     
 
@@ -1482,6 +1756,38 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
     <div id="Tokyo" class="tabcontent">
     </div>
+
+    <div id="Firmware" class="tabcontent">
+        <div class="fw-section">
+            <h3>Firmware Update</h3>
+            <p style="font-size:12px;opacity:0.7;">Current version: v3.4.1</p>
+
+            <input type="file" id="hexFileInput" accept=".hex" style="display:none" onchange="handleFirmwareFile(this)">
+
+            <div class="fw-file-info">
+                <div><strong>File:</strong> <span id="fw-filename">No file selected</span></div>
+                <div><strong>Size:</strong> <span id="fw-filesize">-</span></div>
+            </div>
+
+            <div class="fw-progress-container">
+                <div id="fw-progress-bar" class="fw-progress-bar"></div>
+                <span id="fw-progress-text" class="fw-progress-text">0%</span>
+            </div>
+
+            <div id="fw-status" class="fw-status">Select a .hex firmware file to upload</div>
+
+            <div class="fw-buttons" style="position:relative;z-index:10;">
+                <button id="fw-select-btn" onclick="selectFirmware()">Select File</button>
+                <button id="fw-upload-btn" onclick="uploadFirmware()" disabled>Upload & Flash</button>
+            </div>
+
+            <p style="font-size:11px;margin-top:20px;opacity:0.6;margin-bottom:60px;">
+                Warning: Do not power off the device during firmware update.<br>
+                The device will automatically reboot after flashing.
+            </p>
+        </div>
+    </div>
+
 <div class="tab">
         <button id="submit-button" onclick="submitSettings()">Submit</button>
         <button id="reboot-button" onclick="sendReset()">Reboot</button>
@@ -1501,7 +1807,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
     </div>
     <footer style="position:fixed;bottom:0px;left:0;right:0;padding:12px 12px;">
       <a href="https://videowalrus.com" style="color: var(--dark-blue-accent);">www.videowalrus.com</a>
-      <span style="margin-left:20px;color:var(--type-col);opacity:0.6;">v3.1.0</span>
+      <span style="margin-left:20px;color:var(--type-col);opacity:0.6;">v3.4.1</span>
     </footer>
 
 
@@ -1529,17 +1835,18 @@ enum ConnectionState {
   CONN_CONNECTED           // Fully connected
 };
 
-// Singleton for easy use of NativeEthernet library
+// Singleton for easy use of QNEthernet library with WebSockets2_Generic
 class Network {
 
 
 public:
   IPAddress ip;
-  WebsocketsClient* webSocketClient = nullptr;
+  WebsocketsClient wsClient;  // Current connected WebSocket client
+  bool wsClientConnected = false;
+  bool needToSendSettings = false;  // Flag to send settings from loop instead of callback
 
   bool isConnectedToRouter = false;
   bool autoConnect = false; // used to auto retry to the router
-  bool pauseReconnect = false; // Pause auto-reconnection (e.g., when on Network tab)
   unsigned long lastKeepaliveTime = 0;
   const unsigned long keepaliveInterval = 5000; // Poll every 5 seconds
 
@@ -1556,8 +1863,7 @@ public:
   RouterProtocolType protocolType = PROTOCOL_VIDEOHUB;
 
   Network() {
-    // Get mac address
-    teensyMAC(mac);
+    // QNEthernet handles MAC address automatically
     // Default to VideoHub protocol
     currentProtocol = &videoHubProtocol;
   }
@@ -1591,54 +1897,197 @@ public:
 
 
   // Startup ethernet
-  // @param (IPAddress) ip address to start ethernet on  
+  // @param (IPAddress) ip address to start ethernet on
   void startEthernet(IPAddress _ip, IPAddress _gateway, IPAddress _subnet) {
     // Default dns
     IPAddress dns(_ip[0], _ip[1], _ip[2], 1);
-    Ethernet.begin(mac, _ip, dns, _gateway, _subnet);
-    Ethernet.setSocketSize(PACKET_MAX_SIZE);
+
+    // QNEthernet uses static IP configuration differently
+    Ethernet.begin(_ip, _subnet, _gateway, dns);
+
+    // Wait for link
+    if (!Ethernet.waitForLink(5000)) {
+      err("Ethernet link not detected!");
+    }
+
     info("Ethernet has local IP: ", Ethernet.localIP());
     info("Ethernet has gateway IP: ", Ethernet.gatewayIP());
     info("Ethernet has subnet mask: ", Ethernet.subnetMask());
     ip = _ip;
-
   }
 
 
   // Startup ethernet with DHCP
   void startEthernet() {
-    Ethernet.begin(mac);
-    Ethernet.setSocketSize(PACKET_MAX_SIZE);
-    info("Ethernet has local IP: ", Ethernet.localIP());
-    ip = Ethernet.localIP();
+    info("Starting DHCP...");
 
+    // Start DHCP - this initializes hardware and starts DHCP process
+    if (!Ethernet.begin()) {
+      err("DHCP failed to start!");
+      return;
+    }
+    info("DHCP started, waiting for link and IP...");
+
+    // Wait for link to come up
+    if (!Ethernet.waitForLink(10000)) {
+      err("Ethernet link not detected!");
+      return;
+    }
+    info("Ethernet link detected");
+
+    // Wait for DHCP to complete (IP address to be assigned)
+    // Note: Check for non-zero IP, not INADDR_NONE (which is 255.255.255.255)
+    info("Waiting for DHCP address...");
+    unsigned long startTime = millis();
+    while (true) {
+      IPAddress currentIP = Ethernet.localIP();
+      // Check if we have a valid (non-zero) IP
+      if (currentIP[0] != 0 || currentIP[1] != 0 || currentIP[2] != 0 || currentIP[3] != 0) {
+        break;
+      }
+      if (millis() - startTime > 15000) {
+        err("DHCP timeout - no IP assigned!");
+        return;
+      }
+      delay(100);
+    }
+
+    info("Ethernet has local IP: ", Ethernet.localIP());
+    info("Ethernet has gateway IP: ", Ethernet.gatewayIP());
+    info("Ethernet has subnet mask: ", Ethernet.subnetMask());
+    ip = Ethernet.localIP();
   }
 
 
-  // Start web server
+  // Start simple web server for serving HTML page
   // @param (uint16_t) port number to listen from
   void startWebServer(uint16_t _port) {
+    webServerPort = _port;
     webServer = new EthernetServer(_port);
     webServer->begin();
     info("Web Server is on Port: ", _port);
-
   }
 
 
-  // Start web socket server
-  // @param(uint16_t) port number to send messages on
-  void startWebSocketServer(uint16_t _port, MessageHandle _messageHandle) {
-    messageHandle = _messageHandle;
-
-    webSocketServer = new WebsocketsServer();
-    webSocketServer->listen(_port);
-    if(!webSocketServer->available()) {
-      err("WebSocket server could not start!");
+  // Start mDNS responder for network discovery
+  // Device will be accessible as "js3.local"
+  void startMDNS() {
+    if (!MDNS.begin("js3")) {
+      err("Failed to start mDNS!");
+      return;
     }
-    else {
-      info("WebSocket Server is on Port: ", _port);
+    // Add HTTP service
+    MDNS.addService("_http", "_tcp", webServerPort);
+    info("mDNS started: js3.local");
+  }
+
+
+  // Start WebSocket server using WebSockets2_Generic
+  // @param(uint16_t) port number for WebSocket
+  void startWebSocketServer(uint16_t _port, WebSocketMessageCallback _messageCallback) {
+    wsMessageCallback = _messageCallback;
+    wsServerPort = _port;
+
+    wsServer.listen(_port);
+    info("WebSocket Server is on Port: ", _port);
+    info("WebSocket Server running: ", wsServer.available() ? "Yes" : "No");
+  }
+
+  // Poll for new WebSocket connections and messages
+  void pollWebSocket() {
+    // Check for new connections - only if we don't have a connected client
+    if (!wsClientConnected && wsServer.poll()) {
+      WebsocketsClient newClient = wsServer.accept();
+
+      // Accept the new connection
+      if (newClient.available()) {
+        wsClient = newClient;
+        wsClientConnected = true;
+        info("WebSocket client connected");
+
+        // Set up message callback for this client
+        wsClient.onMessage([this](WebsocketsMessage msg) {
+          // Only log non-fw-data messages to reduce serial spam during OTA
+          if (msg.data().indexOf("fw-data") == -1) {
+            info("Got WebSocket message: ", msg.data().c_str());
+          }
+          if (wsMessageCallback) {
+            wsMessageCallback(msg.data().c_str(), msg.length());
+          }
+        });
+
+        // Set up close callback
+        wsClient.onEvent([this](WebsocketsEvent event, String data) {
+          if (event == WebsocketsEvent::ConnectionClosed) {
+            info("WebSocket client disconnected (event)");
+            wsClientConnected = false;
+          }
+        });
+
+        needToSendSettings = true;
+      }
     }
 
+    // Poll existing client for messages
+    if (wsClientConnected) {
+      // Always poll - the onEvent callback will handle disconnects
+      wsClient.poll();
+    }
+  }
+
+  // Poll for HTTP requests and serve the webpage
+  void pollWebServer() {
+    EthernetClient client = webServer->available();
+    if (client) {
+      bool currentLineIsBlank = true;
+      String requestLine = "";
+      bool firstLine = true;
+
+      while (client.connected()) {
+        if (client.available()) {
+          char c = client.read();
+
+          if (firstLine && c != '\r' && c != '\n') {
+            requestLine += c;
+          }
+
+          if (c == '\n' && currentLineIsBlank) {
+            // End of headers, send response
+            if (requestLine.indexOf("GET / ") >= 0 || requestLine.indexOf("GET /index") >= 0) {
+              // Send the main page
+              client.println("HTTP/1.1 200 OK");
+              client.println("Content-Type: text/html");
+              client.println("Connection: close");
+              client.println();
+              // Use writeFully to ensure entire page is sent
+              size_t pageLen = strlen(webpageA);
+              client.writeFully(reinterpret_cast<const uint8_t*>(webpageA), pageLen);
+              client.flush();
+            } else if (requestLine.indexOf("favicon") >= 0) {
+              client.println("HTTP/1.1 204 No Content");
+              client.println("Connection: close");
+              client.println();
+            } else {
+              client.println("HTTP/1.1 404 Not Found");
+              client.println("Connection: close");
+              client.println();
+            }
+            break;
+          }
+
+          if (c == '\n') {
+            currentLineIsBlank = true;
+            firstLine = false;
+          } else if (c != '\r') {
+            currentLineIsBlank = false;
+          }
+        }
+      }
+      // Give time for data to be sent before closing
+      client.flush();
+      delay(10);
+      client.stop();
+    }
   }
 
   IPAddress router_ip;
@@ -1654,8 +2103,8 @@ public:
       info("Connected to router (", currentProtocol->getName(), ")!");
       isConnectedToRouter = true;
       // tell websocket client
-      if(webSocketClient != nullptr && webSocketClient->available())
-        sendMessage(webSocketClient, "[\"router-stat\", true]");
+      if(wsClientConnected)
+        sendMessage("[\"router-stat\", true]");
 
       // For SWP-08, start non-blocking destination polling
       if(protocolType == PROTOCOL_SWP08) {
@@ -1679,15 +2128,6 @@ public:
 
   // Non-blocking connection state machine - call this from pollRouter()
   void pollConnectionStateMachine() {
-    // If paused, abort any in-progress reconnection
-    if(pauseReconnect) {
-      if(connState != CONN_IDLE && connState != CONN_CONNECTED) {
-        info("Reconnection aborted (paused)");
-        connState = CONN_IDLE;
-      }
-      return;
-    }
-
     unsigned long now = millis();
     unsigned long elapsed = now - connStateTime;
 
@@ -1722,7 +2162,7 @@ public:
         if(routerClient->connect(router_ip, router_port)) {
           info("Connected to router (", currentProtocol->getName(), ")!");
           isConnectedToRouter = true;
-          sendMessage(webSocketClient, "[\"router-stat\", true]");
+          sendMessage("[\"router-stat\", true]");
 
           if(protocolType == PROTOCOL_SWP08) {
             connState = CONN_WAIT_CONNECT;
@@ -1790,7 +2230,7 @@ public:
           char rtsMsg[64];
           snprintf(rtsMsg, sizeof(rtsMsg), "[\"rts\", %d, %d]",
                    swp08Protocol.updatedDest, swp08Protocol.updatedSource);
-          sendMessage(webSocketClient, rtsMsg);
+          sendMessage(rtsMsg);
           swp08Protocol.updatedDest = -1;
           swp08Protocol.updatedSource = -1;
         }
@@ -1807,11 +2247,6 @@ public:
 
   // Start non-blocking reconnection process
   void reconnectToRouter(IPAddress _ip, uint16_t _port) {
-    // Don't reconnect if paused (e.g., user is on Network tab)
-    if(pauseReconnect) {
-      return;
-    }
-
     // Don't start another reconnection if one is in progress
     if(connState != CONN_IDLE && connState != CONN_CONNECTED) {
       return;
@@ -1847,14 +2282,14 @@ public:
       char rtsMsg[64];
       snprintf(rtsMsg, sizeof(rtsMsg), "[\"rts\", %d, %d]",
                currentProtocol->updatedDest, currentProtocol->updatedSource);
-      sendMessage(webSocketClient, rtsMsg);
+      sendMessage(rtsMsg);
       currentProtocol->updatedDest = -1;
       currentProtocol->updatedSource = -1;
     }
 
-    // Periodic keepalive and connection check (skip if paused or TSL 3.1)
+    // Periodic keepalive and connection check (skip for TSL 3.1)
     // TSL 3.1 is send-only, no keepalive or connection monitoring needed
-    if(pauseReconnect || protocolType == PROTOCOL_TSL31) {
+    if(protocolType == PROTOCOL_TSL31) {
       return;
     }
 
@@ -1863,13 +2298,13 @@ public:
       lastKeepaliveTime = now;
 
       if(!routerClient->connected()) {
-        sendMessage(webSocketClient, "[\"router-stat\", false]");
+        sendMessage("[\"router-stat\", false]");
         isConnectedToRouter = false;
         info("Router connection lost, starting reconnect...");
         reconnectToRouter(router_ip, router_port);
       }
       else {
-        sendMessage(webSocketClient, "[\"router-stat\", true]");
+        sendMessage("[\"router-stat\", true]");
         isConnectedToRouter = true;
 
         // Send keepalive poll based on protocol
@@ -1903,38 +2338,32 @@ public:
 
       if(protocolType == PROTOCOL_VIDEOHUB) {
         VideoHubProtocol* vh = (VideoHubProtocol*)currentProtocol;
-        info("Sending to VideoHub:\n", vh->getRouteMessage());
+        info("VideoHub TX: D:", dest, " S:", source);
         routerClient->write(vh->getRouteMessage());
       }
       else if(protocolType == PROTOCOL_SWP08) {
         SWP08Protocol* swp = (SWP08Protocol*)currentProtocol;
-        info("Sending to SWP-08: ", swp->getRouteMessageLength(), " bytes");
         routerClient->write(swp->getRouteMessage(), swp->getRouteMessageLength());
       }
 
       currentProtocol->expected_resp++;
-      info("End of message");
     }
     else {
       isConnectedToRouter = false;
-      info("Router is not connected! Not sending message...");
-      info("Starting reconnection...");
-      reconnectToRouter(router_ip, router_port);  // Non-blocking now
+      info("Router disconnected, reconnecting...");
+      reconnectToRouter(router_ip, router_port);
     }
   }
 
   // Legacy method for compatibility - redirects to sendRouteToRouter
   void sendMessageToRouter(const char* _message) {
     if(isConnectedToRouter && protocolType == PROTOCOL_VIDEOHUB) {
-      info("Sending message to Router:\n", _message);
       routerClient->write(_message);
       currentProtocol->expected_resp++;
-      info("End of message");
     }
     else if(!isConnectedToRouter) {
-      info("Router is not connected! Not sending message...");
-      info("Starting reconnection...");
-      reconnectToRouter(router_ip, router_port);  // Non-blocking now
+      info("Router disconnected, reconnecting...");
+      reconnectToRouter(router_ip, router_port);
     }
   }
 
@@ -1968,77 +2397,47 @@ public:
   }
 
 
-  // Poll web server for incoming messages
-  void pollWebServer() {
-    EthernetClient client = webServer->accept();
-    if (client) {
-      info("Sending a new webpage...");
-      client.println("HTTP/1.1 200 OK");
-      client.println("Content-Type: text/html");
-      client.println("Connection: close");  // the connection will be closed after completion of the response
-      client.println();
+  // WebSocket keepalive timing
+  unsigned long lastWsKeepaliveTime = 0;
+  const unsigned long wsKeepaliveInterval = 2000;  // Send keepalive every 2 seconds
 
-      // Send the client the webpage
-      // client with too large of a buffer
-      char buffer[513];
-      for(int i=0; i<sizeof(webpageA); i += 512) {
-        for(int j=0; j<512 && (i+j) < sizeof(webpageA) ;j++) {
-          buffer[j] = webpageA[i+j];
-        }
-        buffer[512] = '\0';
-        client.print(buffer);
+  // Periodic WebSocket keepalive and settings send (call from loop)
+  void pollWebSocketKeepalive() {
+    // Send settings to newly connected client (deferred from callback)
+    if (needToSendSettings && wsClientConnected) {
+      needToSendSettings = false;
+      info("Sending settings to client...");
 
-      }
+      // Send conn-stat first
+      sendMessage("[\"conn-stat\", true]");
 
-      client.stop();
-    }
+      // Send current settings
+      char buffer[2048];
+      size_t len = serializeJson(Settings.getJson(), buffer, sizeof(buffer));
+      info("Settings JSON length: ", len);
+      sendMessage(buffer);
 
-  }
-
-
-  // Small clock to send a message to keep alive the webclient
-  int clock = 0;
-
-
-  void pollWebSocketServer() {
-    if(webSocketServer->poll()) {
-      // First check if there is already a client
-      if(webSocketClient != nullptr && webSocketClient->available()) {
-        // Send this client a disconnection message
-        sendMessage(webSocketClient, "[\"conn-stat\", false]");
-      }
-      // Set this client to the current client
-      webSocketClient = new WebsocketsClient(webSocketServer->accept());
-      webSocketClient->onMessage(messageHandle);
-      sendMessage(webSocketClient, "[\"conn-stat\", true]");
-      // Send the current settings to the client
-      char buffer[1024];
-      serializeJson(Settings.getJson(), buffer);
-      sendMessage(webSocketClient, buffer);
-
-      // Send current RTS values for all configured destinations
+      // Send RTS values
       sendCurrentRTSValues();
 
+      lastWsKeepaliveTime = millis();
     }
 
-    // Poll the current client
-    if(webSocketClient != nullptr && webSocketClient->available()) {
-      webSocketClient->poll();
-      // Keep up the current connection status to keep client alive,
-      // client will look for a LOS and hault entierly.
-      if (clock%100000 == 0) webSocketClient->send("[\"conn-stat\", true]");
+    // Time-based keepalive (every 2 seconds)
+    unsigned long now = millis();
+    if (wsClientConnected && (now - lastWsKeepaliveTime >= wsKeepaliveInterval)) {
+      lastWsKeepaliveTime = now;
+      // Send keepalive message (don't use wsClient.ping() - it causes blocking timeout issues)
+      sendMessage("[\"conn-stat\", true]");
     }
-
   }
 
 
-  // Helper to send messages along with a nice debug output
-  void sendMessage(WebsocketsClient* _client, const char* _message) {
-    if(webSocketClient != nullptr && webSocketClient->available()) {
-      //info("Sending message: ", _message);
-      _client->send(_message);
+  // Helper to send messages to WebSocket client
+  void sendMessage(const char* _message) {
+    if(wsClientConnected) {
+      wsClient.send(_message);
     }
-
   }
 
   // Send current RTS values for all configured destinations
@@ -2057,30 +2456,20 @@ public:
         // Only send if we have a valid source (non-zero or explicitly set)
         char rtsMsg[64];
         snprintf(rtsMsg, sizeof(rtsMsg), "[\"rts\", %d, %d]", dest0, source);
-        sendMessage(webSocketClient, rtsMsg);
+        sendMessage(rtsMsg);
       }
     }
   }
 
 
 private:
-  byte mac[6];
+  EthernetServer* webServer = nullptr;
+  uint16_t webServerPort = 80;
+  EthernetClient* routerClient = nullptr;
 
-  EthernetServer* webServer;
-  EthernetClient* routerClient;
-
-  WebsocketsServer* webSocketServer;
-  MessageHandle messageHandle;
-
-
-  // Helper function gets the Teensy's preprogrammed mac address,
-  // writen by user 'vjmuzik' on https://forum.pjrc.com/index.php?threads/teensy-4-1-mac-address.62932/
-  void teensyMAC(uint8_t *mac) {
-    for(uint8_t by=0; by<2; by++) mac[by]=(HW_OCOTP_MAC1 >> ((1-by)*8)) & 0xFF;
-    for(uint8_t by=0; by<4; by++) mac[by+2]=(HW_OCOTP_MAC0 >> ((3-by)*8)) & 0xFF;
-    info("Mac: ", mac[0], ":", mac[1], ":", mac[2], ":", mac[3], ":", mac[4], ":", mac[5]);
-  }
-
+  WebsocketsServer wsServer;
+  uint16_t wsServerPort = 8080;
+  WebSocketMessageCallback wsMessageCallback = nullptr;
 
 };
 

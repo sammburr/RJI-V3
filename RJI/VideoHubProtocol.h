@@ -171,18 +171,16 @@ private:
         uint16_t dest = static_cast<uint16_t>(std::stoi(currentSource));
         uint16_t source = static_cast<uint16_t>(std::stoi(currentDest));
 
-        if (dest == lastDest && source == lastSource) {
-          // This is an echo of our own command, ignore it
-          lastSource = -1;
-          lastDest = -1;
-          info("VideoHub: Route confirmed D:", dest, " S:", source);
+        // Check if this should be filtered (matches what we sent while button is held)
+        bool filtered = shouldFilterRoute && shouldFilterRoute(dest, source);
+        if (filtered) {
+          info("VideoHub RX: ACK D:", dest, " S:", source);
         }
         else {
-          // Store as routingPairs[dest] = source
           routingPairs[dest] = source;
           updatedDest = dest;
           updatedSource = source;
-          info("VideoHub: Routing D:", dest, " S:", source);
+          info("VideoHub RX: D:", dest, " S:", source);
         }
 
         currentState = VH_EOB;

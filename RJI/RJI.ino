@@ -8,10 +8,16 @@
 #include "Buttons.h"
 #include "Ethernet.h"
 #include "Logic.h"
+#include "OTA.h"
 
 void (*resetTeensy) (void) = 0; // A function defined at memory location zero causes the arduino to
                                 // reboot
 void buttonCallback(int, bool);
+
+// Network poll callback for OTA - keeps WebSocket alive during flash operations
+void otaNetworkPoll() {
+  Network.pollWebSocket();
+}
 
 Button resetButton(ResetPin, buttonCallback);
 
@@ -50,27 +56,38 @@ void setup() {
   byte gw[4];
   byte sub[4];
 
-  if(*dhcpFlag) {
+  // Read saved IP to check if it's valid
+  Settings.read(ip, Var_InterfaceIP_Size, Var_InterfaceIP);
+
+  info("DHCP flag: ", *dhcpFlag);
+  info("Saved IP: ", ip[0], ".", ip[1], ".", ip[2], ".", ip[3]);
+
+  // Use DHCP if flag is set OR if saved IP is 0.0.0.0 (invalid)
+  bool usedhcp = *dhcpFlag || (ip[0] == 0 && ip[1] == 0 && ip[2] == 0 && ip[3] == 0);
+
+  if(usedhcp) {
     info("Starting ethernet with DHCP...");
 
     // Start with DHCP
     Network.startEthernet();
-    // Reset dhcp flag
-    // dhcpFlag[0] = 0;
-    // Settings.write(dhcpFlag, Var_DHCPToggle_Size, Var_DHCPToggle);
-    // Write the new ip to settings
-    ip[0] = Network.ip[0];
-    ip[1] = Network.ip[1];
-    ip[2] = Network.ip[2];
-    ip[3] = Network.ip[3];
-    Settings.write(ip, Var_InterfaceIP_Size, Var_InterfaceIP);
+
+    // Only save the IP if DHCP succeeded
+    if(Network.ip[0] != 0 || Network.ip[1] != 0 || Network.ip[2] != 0 || Network.ip[3] != 0) {
+      ip[0] = Network.ip[0];
+      ip[1] = Network.ip[1];
+      ip[2] = Network.ip[2];
+      ip[3] = Network.ip[3];
+      Settings.write(ip, Var_InterfaceIP_Size, Var_InterfaceIP);
+      info("Saved DHCP IP to settings: ", ip[0], ".", ip[1], ".", ip[2], ".", ip[3]);
+    } else {
+      err("DHCP failed - IP not saved");
+    }
 
   } else {
     info("Starting ethernet with a static IP...");
 
-    Settings.read(ip, Var_InterfaceIP_Size, Var_InterfaceIP);  
-    Settings.read(gw, Var_InterfaceGW_Size, Var_InterfaceGW);  
-    Settings.read(sub, Var_InterfaceSub_Size, Var_InterfaceSub);  
+    Settings.read(gw, Var_InterfaceGW_Size, Var_InterfaceGW);
+    Settings.read(sub, Var_InterfaceSub_Size, Var_InterfaceSub);
     Network.startEthernet(ip, gw, sub);
 
   }
@@ -81,10 +98,16 @@ void setup() {
   Settings.read_16bit(port, Var_WebServerPort);
   Network.startWebServer(port);
 
+  info("Starting mDNS...");
+  Network.startMDNS();
+
   info("Starting WebSocket server...");
 
   Settings.read_16bit(port, Var_WebSocketPort);
   Network.startWebSocketServer(port, websocketMessageCallback);
+
+  // Set up OTA network poll callback to keep WebSocket alive during flash operations
+  OTA.setNetworkPollCallback(otaNetworkPoll);
 
   info("Setting up router protocol...");
 
@@ -97,6 +120,11 @@ void setup() {
   byte swp08Level[1];
   Settings.read(swp08Level, Var_SWP08Level_Size, Var_SWP08Level);
   Network.setSWP08Level(*swp08Level);
+
+  // Set up route filtering callback for late ACK detection
+  RouterProtocol::shouldFilterRoute = [](uint16_t dest, uint16_t source) -> bool {
+    return Logic.shouldFilterRoute(dest, source);
+  };
 
   info("Connecting to Router...");
 
@@ -113,12 +141,24 @@ void setup() {
 void loop() {
   //resetButton.poll();
   pollButtons();
-  Network.pollWebServer();
-  Network.pollWebSocketServer();
-  
-  Network.pollRouter();
 
-  Network.clock += 1;
+  // Poll web server and WebSocket
+  Network.pollWebServer();
+  Network.pollWebSocket();
+
+  // Skip router polling during OTA to prevent blocking WebSocket
+  if (!OTA.updateInProgress) {
+    Network.pollRouter();
+  }
+  Network.pollWebSocketKeepalive();
+
+  // Check for pending OTA flash operation
+  if (OTA.hasPendingFlash()) {
+    info("OTA: Executing firmware flash...");
+    Network.sendMessage("[\"fw-flashing\"]");
+    delay(100);  // Allow WebSocket message to send
+    OTA.executeFlash();  // This will reboot the device
+  }
 
 }
 
@@ -164,23 +204,23 @@ void resetButtonFun() {
 }
 
 void buttonCallback(int _pin, bool _state) {
-  info(_pin, ", ", _state);
-  {
-    std::string message = "[\"gpi\",\"gpi-" + std::to_string(_pin - 28) + "\"," + std::to_string(_state) + "]";
-    Network.sendMessage(Network.webSocketClient, message.c_str());
-    Logic.parseButton(_pin, _state);
-
-  }
-
+  int gpiNum = _pin - 28;
+  info("GPI ", gpiNum, _state ? " DOWN" : " UP");
+  std::string message = "[\"gpi\",\"gpi-" + std::to_string(gpiNum) + "\"," + std::to_string(_state) + "]";
+  Network.sendMessage(message.c_str());
+  Logic.parseButton(_pin, _state);
 }
 
 
-void websocketMessageCallback(WebsocketsClient& _client, WebsocketsMessage _message) {
-  info("Got a message: ", _message.data());
+void websocketMessageCallback(const char* data, size_t len) {
+  // Don't log fw-data messages to reduce serial spam during OTA
+  if (strstr(data, "fw-data") == nullptr) {
+    info("Got a message: ", data);
+  }
 
   // Parse to a json
   JsonDocument json;
-  deserializeJson(json, _message.data());
+  deserializeJson(json, data);
 
   // The header of a given message is allways a string
   std::string header = json[0];
@@ -339,9 +379,46 @@ void websocketMessageCallback(WebsocketsClient& _client, WebsocketsMessage _mess
   } else if(header == "gpi_up") {
     buttonCallback(json[1].as<int>() + 28, false);
 
-  } else if(header == "pause_reconnect") {
-    Network.pauseReconnect = json[1].as<bool>();
-    info("Pause reconnect: ", Network.pauseReconnect ? "true" : "false");
+  } else if(header == "fw-start") {
+    if(OTA.startUpdate()) {
+      Network.sendMessage("[\"fw-progress\", 0, 0]");
+    } else {
+      char errMsg[128];
+      snprintf(errMsg, sizeof(errMsg), "[\"fw-error\", \"%s\"]", OTA.lastError.c_str());
+      Network.sendMessage(errMsg);
+    }
+
+  } else if(header == "fw-data") {
+    // Process hex line
+    const char* hexLine = json[1].as<const char*>();
+    if(!OTA.processHexLine(hexLine)) {
+      char errMsg[128];
+      snprintf(errMsg, sizeof(errMsg), "[\"fw-error\", \"%s\"]", OTA.lastError.c_str());
+      Network.sendMessage(errMsg);
+      OTA.abortUpdate();
+    }
+    // Send progress every 100 lines (but not at 0)
+    if(OTA.linesProcessed > 0 && OTA.linesProcessed % 100 == 0) {
+      char progressMsg[64];
+      snprintf(progressMsg, sizeof(progressMsg), "[\"fw-progress\", %lu, %lu]",
+               OTA.linesProcessed, OTA.bytesReceived);
+      Network.sendMessage(progressMsg);
+    }
+
+  } else if(header == "fw-end") {
+    info("OTA: Finishing firmware update...");
+    if(OTA.finishUpdate()) {
+      Network.sendMessage("[\"fw-ready\"]");
+      // The actual flash will happen in loop() when hasPendingFlash() is true
+    } else {
+      char errMsg[128];
+      snprintf(errMsg, sizeof(errMsg), "[\"fw-error\", \"%s\"]", OTA.lastError.c_str());
+      Network.sendMessage(errMsg);
+    }
+
+  } else if(header == "fw-abort") {
+    info("OTA: Aborting firmware update...");
+    OTA.abortUpdate();
 
   }
 

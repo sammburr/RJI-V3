@@ -105,12 +105,15 @@ public:
 
   
   // print out a nice looking message, styled as `info`
-  // @param (T) header is placed at the front of a message, 
+  // @param (T) header is placed at the front of a message,
   //            this can be anything such as an author of the
   //            message
   // @param (Args) Any amount of subsequent objects to print out
   template<typename T, typename... Args>
   void printInfo(T _header, Args... _args) {
+    Serial.print("[");
+    Serial.print(millis());
+    Serial.print("] ");
     Serial.print(_header);
     Serial.print("(i)$: ");
     print(_args...);

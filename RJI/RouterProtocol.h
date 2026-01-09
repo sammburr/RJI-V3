@@ -3,6 +3,10 @@
 
 #include <stdint.h>
 
+// Function pointer type for route filtering check
+// Returns true if the route should be filtered (dest is locked AND source matches what we sent)
+typedef bool (*ShouldFilterRouteFn)(uint16_t dest, uint16_t source);
+
 // Abstract base class for router protocols
 // Implementations: VideoHubProtocol, SWP08Protocol
 
@@ -42,6 +46,13 @@ public:
   // Expected responses counter
   int expected_resp = 0;
 
+  // Callback to check if a route should be filtered
+  // Set by the application after initialization
+  static ShouldFilterRouteFn shouldFilterRoute;
+
 };
+
+// Initialize static member
+inline ShouldFilterRouteFn RouterProtocol::shouldFilterRoute = nullptr;
 
 #endif

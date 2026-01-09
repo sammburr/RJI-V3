@@ -330,16 +330,16 @@ private:
       uint16_t dest = ((uint16_t)destH << 7) | (dataBuffer[3] & 0x7F);
       uint16_t source = ((uint16_t)srcH << 7) | (dataBuffer[4] & 0x7F);
 
-      // Check if this is our own echo
-      if(dest == lastDest && source == lastSource) {
-        lastDest = -1;
-        lastSource = -1;
-        info("SWP08: Route confirmed D:", dest, " S:", source);
-      } else {
+      // Check if this should be filtered (matches what we sent while button is held)
+      bool filtered = shouldFilterRoute && shouldFilterRoute(dest, source);
+      if (filtered) {
+        info("SWP08 RX: ACK D:", dest, " S:", source);
+      }
+      else {
         routingPairs[dest] = source;
         updatedDest = dest;
         updatedSource = source;
-        info("SWP08: Crosspoint tally D:", dest, " S:", source);
+        info("SWP08 RX: D:", dest, " S:", source);
       }
     }
   }
@@ -350,16 +350,16 @@ private:
       uint16_t dest = ((uint16_t)dataBuffer[3] << 8) | dataBuffer[4];
       uint16_t source = ((uint16_t)dataBuffer[5] << 8) | dataBuffer[6];
 
-      // Check if this is our own echo
-      if(dest == lastDest && source == lastSource) {
-        lastDest = -1;
-        lastSource = -1;
-        info("SWP08: Route confirmed D:", dest, " S:", source);
-      } else {
+      // Check if this should be filtered (matches what we sent while button is held)
+      bool filtered = shouldFilterRoute && shouldFilterRoute(dest, source);
+      if (filtered) {
+        info("SWP08 RX: ACK D:", dest, " S:", source);
+      }
+      else {
         routingPairs[dest] = source;
         updatedDest = dest;
         updatedSource = source;
-        info("SWP08: Crosspoint tally (ext) D:", dest, " S:", source);
+        info("SWP08 RX: D:", dest, " S:", source);
       }
     }
   }
