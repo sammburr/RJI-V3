@@ -113,6 +113,11 @@ const char webpageA[] PROGMEM =R"rawLiteral(
                 case "fw-flashing":
                     handleFirmwareMessage(json);
                     break;
+                case "error":
+                    // Server sent an error message (e.g., max connections reached)
+                    alert("Server: " + json[1]);
+                    reconnectAttempts = maxReconnectAttempts; // Stop reconnection attempts
+                    break;
             }
             lastMessageDate = new Date();
             updateStatusBar();
@@ -1175,12 +1180,22 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
     /* Color Scheme - Light Mode */
     :root {
-        --bg-col: #d9d9d9;
+        --bg-col: #f5f5f5;
         --type-col: #2F2F2F;
-        --green-accent: #D1EFB5;
-        --dark-green-accent: #587c36;
-        --blue-accent: #E3F9FF;
-        --dark-blue-accent: #BAD5DC;
+        --header-bg: #4db6c5;
+        --header-text: #fff;
+        --card-bg: #fff;
+        --card-border: #ddd;
+        --table-header-bg: #5a5a5a;
+        --table-header-text: #fff;
+        --table-row-odd: #fff;
+        --table-row-even: #f9f9f9;
+        --green-accent: #2ecc71;
+        --dark-green-accent: #27ae60;
+        --blue-accent: #3498db;
+        --dark-blue-accent: #2980b9;
+        --red-accent: #e74c3c;
+        --dark-red-accent: #c0392b;
         --orange-accent: #F59D46;
         --dark-orange-accent: #ff8000;
         --light-gray-accent: #eeeeee;
@@ -1192,10 +1207,20 @@ const char webpageA[] PROGMEM =R"rawLiteral(
     .dark-mode {
         --bg-col: #1a1a2e;
         --type-col: #eaeaea;
+        --header-bg: #2a5a6a;
+        --header-text: #fff;
+        --card-bg: #2a2a3e;
+        --card-border: #444;
+        --table-header-bg: #3a3a4e;
+        --table-header-text: #fff;
+        --table-row-odd: #2a2a3e;
+        --table-row-even: #252535;
         --green-accent: #4a7c36;
         --dark-green-accent: #6aad4a;
         --blue-accent: #2a3a4a;
         --dark-blue-accent: #3a5a7a;
+        --red-accent: #c0392b;
+        --dark-red-accent: #e74c3c;
         --orange-accent: #c06030;
         --dark-orange-accent: #e08050;
         --light-gray-accent: #2a2a3e;
@@ -1647,6 +1672,184 @@ const char webpageA[] PROGMEM =R"rawLiteral(
     border-radius: 8px;
   }
 
+    /* New Header Styles */
+    .main-header {
+        background-color: var(--header-bg);
+        padding: 15px 20px;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .main-header h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: bold;
+        color: var(--header-text);
+        background-color: transparent;
+    }
+
+    .main-header .subtitle {
+        margin: 5px 0 0 0;
+        font-size: 14px;
+        color: rgba(255,255,255,0.7);
+        background-color: transparent;
+    }
+
+    /* Card Styles */
+    .card {
+        background-color: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 8px;
+        margin: 15px auto;
+        max-width: 700px;
+        overflow: hidden;
+    }
+
+    .card-title {
+        text-align: center;
+        font-size: 20px;
+        font-weight: bold;
+        padding: 15px;
+        margin: 0;
+        background-color: var(--card-bg);
+        color: var(--type-col);
+        border-bottom: 1px solid var(--card-border);
+    }
+
+    /* Config Table Styles */
+    .config-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+    .config-table th {
+        background-color: var(--table-header-bg);
+        color: var(--table-header-text);
+        padding: 10px 8px;
+        font-weight: bold;
+        text-align: center;
+        border: none;
+    }
+
+    .config-table td {
+        padding: 8px;
+        text-align: center;
+        border-bottom: 1px solid var(--card-border);
+        background-color: var(--card-bg);
+        color: var(--type-col);
+    }
+
+    .config-table tr:nth-child(even) td {
+        background-color: var(--table-row-even);
+    }
+
+    .config-table tr:nth-child(odd) td {
+        background-color: var(--table-row-odd);
+    }
+
+    .config-table input {
+        width: 60px;
+        text-align: center;
+        padding: 4px;
+        border: 1px solid var(--table-border);
+        border-radius: 3px;
+        background-color: var(--input-bg);
+        color: var(--type-col);
+    }
+
+    .config-table select {
+        padding: 4px;
+        border: 1px solid var(--table-border);
+        border-radius: 3px;
+        background-color: var(--input-bg);
+        color: var(--type-col);
+    }
+
+    /* State Indicator */
+    .state-indicator {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 3px;
+        font-weight: bold;
+        font-size: 12px;
+        min-width: 60px;
+    }
+
+    .state-pushed {
+        background-color: var(--red-accent);
+        color: #fff;
+    }
+
+    .state-idle {
+        background-color: var(--blue-accent);
+        color: #fff;
+    }
+
+    /* Button Bar */
+    .button-bar {
+        text-align: center;
+        padding: 15px;
+        background-color: var(--card-bg);
+    }
+
+    .btn {
+        display: inline-block;
+        padding: 10px 25px;
+        margin: 0 5px;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        float: none;
+    }
+
+    .btn-save {
+        background-color: var(--green-accent);
+        color: #fff;
+    }
+
+    .btn-save:hover {
+        background-color: var(--dark-green-accent);
+    }
+
+    .btn-reboot {
+        background-color: var(--red-accent);
+        color: #fff;
+    }
+
+    .btn-reboot:hover {
+        background-color: var(--dark-red-accent);
+    }
+
+    .btn-secondary {
+        background-color: var(--blue-accent);
+        color: #fff;
+    }
+
+    .btn-secondary:hover {
+        background-color: var(--dark-blue-accent);
+    }
+
+    /* Mode Toggle in Header */
+    .mode-toggle {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: rgba(255,255,255,0.2);
+        border: 1px solid rgba(255,255,255,0.3);
+        color: #fff;
+        padding: 5px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+    }
+
+    .mode-toggle:hover {
+        background: rgba(255,255,255,0.3);
+    }
+
     </style>
 
 </head>
@@ -1841,9 +2044,12 @@ class Network {
 
 public:
   IPAddress ip;
-  WebsocketsClient wsClient;  // Current connected WebSocket client
-  bool wsClientConnected = false;
-  bool needToSendSettings = false;  // Flag to send settings from loop instead of callback
+
+  // Multiple WebSocket client support
+  static const uint8_t MAX_WS_CLIENTS = 4;
+  WebsocketsClient wsClients[MAX_WS_CLIENTS];
+  bool wsClientConnected[MAX_WS_CLIENTS] = {false, false, false, false};
+  bool needToSendSettings[MAX_WS_CLIENTS] = {false, false, false, false};
 
   bool isConnectedToRouter = false;
   bool autoConnect = false; // used to auto retry to the router
@@ -1993,45 +2199,89 @@ public:
     info("WebSocket Server running: ", wsServer.available() ? "Yes" : "No");
   }
 
+  // Helper to find a free client slot
+  int8_t findFreeClientSlot() {
+    for (uint8_t i = 0; i < MAX_WS_CLIENTS; i++) {
+      if (!wsClientConnected[i]) {
+        return i;
+      }
+    }
+    return -1;  // No free slots
+  }
+
+  // Helper to count connected clients
+  uint8_t countConnectedClients() {
+    uint8_t count = 0;
+    for (uint8_t i = 0; i < MAX_WS_CLIENTS; i++) {
+      if (wsClientConnected[i]) count++;
+    }
+    return count;
+  }
+
+  // Helper to check if any client is connected
+  bool hasConnectedClient() {
+    for (uint8_t i = 0; i < MAX_WS_CLIENTS; i++) {
+      if (wsClientConnected[i]) return true;
+    }
+    return false;
+  }
+
   // Poll for new WebSocket connections and messages
   void pollWebSocket() {
-    // Check for new connections - only if we don't have a connected client
-    if (!wsClientConnected && wsServer.poll()) {
-      WebsocketsClient newClient = wsServer.accept();
+    // Check for new connections if we have a free slot
+    if (wsServer.poll()) {
+      int8_t freeSlot = findFreeClientSlot();
 
-      // Accept the new connection
-      if (newClient.available()) {
-        wsClient = newClient;
-        wsClientConnected = true;
-        info("WebSocket client connected");
+      if (freeSlot >= 0) {
+        WebsocketsClient newClient = wsServer.accept();
 
-        // Set up message callback for this client
-        wsClient.onMessage([this](WebsocketsMessage msg) {
-          // Only log non-fw-data messages to reduce serial spam during OTA
-          if (msg.data().indexOf("fw-data") == -1) {
-            info("Got WebSocket message: ", msg.data().c_str());
-          }
-          if (wsMessageCallback) {
-            wsMessageCallback(msg.data().c_str(), msg.length());
-          }
-        });
+        // Accept the new connection
+        if (newClient.available()) {
+          uint8_t clientIndex = (uint8_t)freeSlot;
+          wsClients[clientIndex] = newClient;
+          wsClientConnected[clientIndex] = true;
+          info("WebSocket client ", clientIndex, " connected (", countConnectedClients(), "/", MAX_WS_CLIENTS, " clients)");
 
-        // Set up close callback
-        wsClient.onEvent([this](WebsocketsEvent event, String data) {
-          if (event == WebsocketsEvent::ConnectionClosed) {
-            info("WebSocket client disconnected (event)");
-            wsClientConnected = false;
-          }
-        });
+          // Set up message callback for this client
+          wsClients[clientIndex].onMessage([this](WebsocketsMessage msg) {
+            // Only log non-fw-data messages to reduce serial spam during OTA
+            if (msg.data().indexOf("fw-data") == -1) {
+              info("Got WebSocket message: ", msg.data().c_str());
+            }
+            if (wsMessageCallback) {
+              wsMessageCallback(msg.data().c_str(), msg.length());
+            }
+          });
 
-        needToSendSettings = true;
+          // Set up close callback - capture clientIndex by value
+          wsClients[clientIndex].onEvent([this, clientIndex](WebsocketsEvent event, String data) {
+            if (event == WebsocketsEvent::ConnectionClosed) {
+              info("WebSocket client ", clientIndex, " disconnected");
+              wsClientConnected[clientIndex] = false;
+            }
+          });
+
+          needToSendSettings[clientIndex] = true;
+        }
+      } else {
+        // No free slots - reject the connection
+        WebsocketsClient rejectedClient = wsServer.accept();
+        if (rejectedClient.available()) {
+          info("WebSocket connection rejected - max clients reached (", MAX_WS_CLIENTS, ")");
+          rejectedClient.send("[\"error\", \"Server busy - max connections reached\"]");
+          // Don't close immediately - let client receive the message first
+          // Client will stop reconnecting after receiving the error
+          delay(100);  // Small delay to allow message to be sent
+          rejectedClient.close();
+        }
       }
     }
 
-    // Poll existing client for messages
-    if (wsClientConnected) {
-      // Always poll - the onEvent callback will handle disconnects
-      wsClient.poll();
+    // Poll all connected clients for messages
+    for (uint8_t i = 0; i < MAX_WS_CLIENTS; i++) {
+      if (wsClientConnected[i]) {
+        wsClients[i].poll();
+      }
     }
   }
 
@@ -2102,8 +2352,8 @@ public:
     if(routerClient->connect(_ip, _port)) {
       info("Connected to router (", currentProtocol->getName(), ")!");
       isConnectedToRouter = true;
-      // tell websocket client
-      if(wsClientConnected)
+      // tell websocket clients
+      if(hasConnectedClient())
         sendMessage("[\"router-stat\", true]");
 
       // For SWP-08, start non-blocking destination polling
@@ -2403,29 +2653,31 @@ public:
 
   // Periodic WebSocket keepalive and settings send (call from loop)
   void pollWebSocketKeepalive() {
-    // Send settings to newly connected client (deferred from callback)
-    if (needToSendSettings && wsClientConnected) {
-      needToSendSettings = false;
-      info("Sending settings to client...");
+    // Send settings to newly connected clients (deferred from callback)
+    for (uint8_t i = 0; i < MAX_WS_CLIENTS; i++) {
+      if (needToSendSettings[i] && wsClientConnected[i]) {
+        needToSendSettings[i] = false;
+        info("Sending settings to client ", i, "...");
 
-      // Send conn-stat first
-      sendMessage("[\"conn-stat\", true]");
+        // Send conn-stat first
+        sendMessageToClient(i, "[\"conn-stat\", true]");
 
-      // Send current settings
-      char buffer[2048];
-      size_t len = serializeJson(Settings.getJson(), buffer, sizeof(buffer));
-      info("Settings JSON length: ", len);
-      sendMessage(buffer);
+        // Send current settings
+        char buffer[2048];
+        size_t len = serializeJson(Settings.getJson(), buffer, sizeof(buffer));
+        info("Settings JSON length: ", len);
+        sendMessageToClient(i, buffer);
 
-      // Send RTS values
-      sendCurrentRTSValues();
+        // Send RTS values to this client
+        sendCurrentRTSValuesToClient(i);
 
-      lastWsKeepaliveTime = millis();
+        lastWsKeepaliveTime = millis();
+      }
     }
 
-    // Time-based keepalive (every 2 seconds)
+    // Time-based keepalive (every 2 seconds) - broadcast to all
     unsigned long now = millis();
-    if (wsClientConnected && (now - lastWsKeepaliveTime >= wsKeepaliveInterval)) {
+    if (hasConnectedClient() && (now - lastWsKeepaliveTime >= wsKeepaliveInterval)) {
       lastWsKeepaliveTime = now;
       // Send keepalive message (don't use wsClient.ping() - it causes blocking timeout issues)
       sendMessage("[\"conn-stat\", true]");
@@ -2434,13 +2686,23 @@ public:
 
 
   // Helper to send messages to WebSocket client
+  // Broadcast message to all connected WebSocket clients
   void sendMessage(const char* _message) {
-    if(wsClientConnected) {
-      wsClient.send(_message);
+    for (uint8_t i = 0; i < MAX_WS_CLIENTS; i++) {
+      if (wsClientConnected[i]) {
+        wsClients[i].send(_message);
+      }
     }
   }
 
-  // Send current RTS values for all configured destinations
+  // Send message to a specific client
+  void sendMessageToClient(uint8_t clientIndex, const char* _message) {
+    if (clientIndex < MAX_WS_CLIENTS && wsClientConnected[clientIndex]) {
+      wsClients[clientIndex].send(_message);
+    }
+  }
+
+  // Send current RTS values for all configured destinations (broadcast to all clients)
   void sendCurrentRTSValues() {
     if(currentProtocol == nullptr) return;
 
@@ -2457,6 +2719,27 @@ public:
         char rtsMsg[64];
         snprintf(rtsMsg, sizeof(rtsMsg), "[\"rts\", %d, %d]", dest0, source);
         sendMessage(rtsMsg);
+      }
+    }
+  }
+
+  // Send current RTS values to a specific client
+  void sendCurrentRTSValuesToClient(uint8_t clientIndex) {
+    if(currentProtocol == nullptr) return;
+
+    for(uint8_t i = 0; i < 6; i++) {
+      byte dest[1];
+      Settings.read(dest, 1, Var_Eng_0 + 2 + ((int)i * 14));
+
+      if(*dest > 0) {
+        // dest is 1-indexed in settings, routingPairs uses 0-indexed
+        uint16_t dest0 = *dest - 1;
+        uint16_t source = currentProtocol->routingPairs[dest0];
+
+        // Only send if we have a valid source (non-zero or explicitly set)
+        char rtsMsg[64];
+        snprintf(rtsMsg, sizeof(rtsMsg), "[\"rts\", %d, %d]", dest0, source);
+        sendMessageToClient(clientIndex, rtsMsg);
       }
     }
   }
