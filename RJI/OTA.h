@@ -51,19 +51,19 @@ public:
     }
 
     // Use RAM buffer instead of flash buffer to avoid flash-on-flash issues
-    // Teensy 4.1 has ~400KB free heap RAM, enough for most firmware
-    // Try to allocate 512KB for firmware buffer
-    bufferSize = 512 * 1024;
-    bufferAddr = (uint32_t)malloc(bufferSize);
+    // Try progressively smaller buffers until one fits in available heap
+    info("OTA: Free RAM before alloc: ", freeHeap() / 1024, "KB");
 
-    if (bufferAddr == 0) {
-      // Try smaller buffer
-      bufferSize = 400 * 1024;
+    const uint32_t sizes[] = {512 * 1024, 400 * 1024, 300 * 1024, 256 * 1024};
+    bufferAddr = 0;
+    for (uint32_t sz : sizes) {
+      bufferSize = sz;
       bufferAddr = (uint32_t)malloc(bufferSize);
+      if (bufferAddr != 0) break;
     }
 
     if (bufferAddr == 0) {
-      lastError = "Failed to allocate RAM buffer";
+      lastError = String("Failed to allocate RAM buffer (free: ") + (freeHeap() / 1024) + "KB)";
       err("OTA: ", lastError.c_str());
       return false;
     }
@@ -228,6 +228,18 @@ private:
   uint32_t firmwareSize = 0;
   bool usingRamBuffer = false;
   hex_info_t hex;
+
+  // Estimate largest free heap block by probing with malloc
+  uint32_t freeHeap() {
+    uint32_t lo = 0, hi = 1024 * 1024;
+    while (hi - lo > 1024) {
+      uint32_t mid = (lo + hi) / 2;
+      void* p = malloc(mid);
+      if (p) { free(p); lo = mid; }
+      else { hi = mid; }
+    }
+    return lo;
+  }
 
   // Parse Intel HEX line with checksum validation
   // Returns true on valid line, false on error

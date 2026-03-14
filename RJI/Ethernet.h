@@ -49,13 +49,26 @@ const char webpageA[] PROGMEM =R"rawLiteral(
     var currentProtocol = "Unknown";
     var fwUpdateInProgress = false;  // Global flag for firmware update
 
+    var connectTimeout = null;
+    var hasEverConnected = false;
+
     function connectWebSocket() {
         var wsUrl = "ws://" + window.location.hostname + ":8080";
         console.log("[WS] Connecting to", wsUrl);
         socket = new WebSocket(wsUrl);
 
+        // If socket doesn't open within 5s, close and let reconnect handle it
+        connectTimeout = setTimeout(function() {
+            if(socket && socket.readyState === WebSocket.CONNECTING) {
+                console.warn("[WS] Connection timeout");
+                socket.close();
+            }
+        }, 5000);
+
         socket.addEventListener('open', function() {
             console.log("[WS] Connected");
+            clearTimeout(connectTimeout);
+            hasEverConnected = true;
             reconnectAttempts = 0;
             lastMessageDate = new Date();  // Reset on connect to prevent immediate timeout
             updateStatusBar();
@@ -65,23 +78,42 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
         socket.addEventListener('close', function(e) {
             console.warn("[WS] Closed (code:" + e.code + " reason:" + (e.reason || "none") + ")");
+            clearTimeout(connectTimeout);
             setConnectionStatus(false);
             attemptReconnect();
         });
 
         socket.addEventListener('error', function(e) {
             console.error("[WS] Error", e);
+            clearTimeout(connectTimeout);
             setConnectionStatus(false);
         });
     }
 
+    var reconnectTimer = null;
+
     function attemptReconnect() {
+        // Prevent duplicate reconnect attempts
+        if(reconnectTimer) return;
+
+        // If never connected and already tried 2 times, force page reload
+        // (Safari has a bug where WS connections fail after page reload,
+        // but a second reload always works)
+        if(!hasEverConnected && reconnectAttempts >= 2) {
+            console.log("[WS] Forcing page reload to reset connection (Safari workaround)");
+            location.reload();
+            return;
+        }
+
         if(reconnectAttempts < maxReconnectAttempts) {
             reconnectAttempts++;
-            var delay = Math.min(1000 * Math.pow(2, reconnectAttempts - 1), 30000);
+            var delay = reconnectAttempts <= 1 ? 500 : reconnectAttempts <= 4 ? 1500 : Math.min(1000 * Math.pow(2, reconnectAttempts - 4), 30000);
             console.log("[WS] Reconnecting in " + delay + "ms (attempt " + reconnectAttempts + "/" + maxReconnectAttempts + ")");
             updateStatusBar();
-            setTimeout(connectWebSocket, delay);
+            reconnectTimer = setTimeout(function() {
+                reconnectTimer = null;
+                connectWebSocket();
+            }, delay);
         } else {
             console.error("[WS] Max reconnect attempts reached, giving up");
         }
@@ -92,6 +124,9 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         populateInputObjects();
         connectWebSocket();
     });
+
+    // Note: Don't close WebSocket in beforeunload - it creates a stale TCP
+    // connection that interferes with the new page's connection attempt
 
     function webSocketMessage(_event){
         try {
@@ -135,8 +170,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
                     break;
                 case "error":
                     console.error("[WS] Server error:", json[1]);
-                    alert("Server: " + json[1]);
-                    reconnectAttempts = maxReconnectAttempts; // Stop reconnection attempts
+                    // Don't stop reconnecting - server busy is transient (e.g. during page reload)
                     break;
                 default:
                     console.warn("[WS] Unknown message type:", json[0]);
@@ -154,13 +188,13 @@ const char webpageA[] PROGMEM =R"rawLiteral(
             updateStatusBar();
             return;
         }
+        // Only check timeout if socket is open (not while connecting)
+        if(!socket || socket.readyState !== WebSocket.OPEN) return;
         const currDate = new Date();
         var elapsed = currDate - lastMessageDate;
-        if(lastMessageDate && elapsed > 3000) {
+        if(lastMessageDate && elapsed > 10000) {
             console.warn("[WS] No message for " + Math.round(elapsed/1000) + "s, closing connection");
-            if(socket && socket.readyState === WebSocket.OPEN) {
-                socket.close();
-            }
+            socket.close();
             setConnectionStatus(false);
         }
         updateStatusBar();
@@ -2088,6 +2122,8 @@ public:
   WebsocketsClient wsClients[MAX_WS_CLIENTS];
   bool wsClientConnected[MAX_WS_CLIENTS] = {false, false, false, false};
   bool needToSendSettings[MAX_WS_CLIENTS] = {false, false, false, false};
+  unsigned long wsClientConnectTime[MAX_WS_CLIENTS] = {0, 0, 0, 0};
+  uint32_t wsClientGeneration[MAX_WS_CLIENTS] = {0, 0, 0, 0};
 
   bool isConnectedToRouter = false;
   bool autoConnect = false; // used to auto retry to the router
@@ -2266,18 +2302,31 @@ public:
 
   // Poll for new WebSocket connections and messages
   void pollWebSocket() {
-    // Check for new connections if we have a free slot
+    // Poll existing clients first to process any pending closes
+    // (e.g. browser reload closes old connection, freeing the slot for the new one)
+    for (uint8_t i = 0; i < MAX_WS_CLIENTS; i++) {
+      if (wsClientConnected[i]) {
+        wsClients[i].poll();
+      }
+    }
+
+    // Check for new connections
+    // Note: wsServer.poll() always returns true (library bug), but accept()
+    // returns quickly if no TCP connection is pending
     if (wsServer.poll()) {
-      int8_t freeSlot = findFreeClientSlot();
+      WebsocketsClient newClient = wsServer.accept();
+      Ethernet.loop();  // Flush handshake response to client
 
-      if (freeSlot >= 0) {
-        WebsocketsClient newClient = wsServer.accept();
+      if (newClient.available()) {
+        int8_t freeSlot = findFreeClientSlot();
 
-        // Accept the new connection
-        if (newClient.available()) {
+        if (freeSlot >= 0) {
           uint8_t clientIndex = (uint8_t)freeSlot;
           wsClients[clientIndex] = newClient;
           wsClientConnected[clientIndex] = true;
+          wsClientConnectTime[clientIndex] = millis();
+          wsClientGeneration[clientIndex]++;
+          uint32_t gen = wsClientGeneration[clientIndex];
           info("WebSocket client ", clientIndex, " connected (", countConnectedClients(), "/", MAX_WS_CLIENTS, " clients)");
 
           // Set up message callback for this client
@@ -2291,34 +2340,25 @@ public:
             }
           });
 
-          // Set up close callback - capture clientIndex by value
-          wsClients[clientIndex].onEvent([this, clientIndex](WebsocketsEvent event, String data) {
+          // Set up close callback - capture clientIndex and generation by value
+          // Generation check prevents a stale close from an old connection
+          // from killing a newer connection in the same slot
+          wsClients[clientIndex].onEvent([this, clientIndex, gen](WebsocketsEvent event, String data) {
             if (event == WebsocketsEvent::ConnectionClosed) {
-              info("WebSocket client ", clientIndex, " disconnected");
-              wsClientConnected[clientIndex] = false;
+              if (wsClientGeneration[clientIndex] == gen) {
+                info("WebSocket client ", clientIndex, " disconnected");
+                wsClientConnected[clientIndex] = false;
+              } else {
+                info("WebSocket client ", clientIndex, " stale close ignored (old connection)");
+              }
             }
           });
 
           needToSendSettings[clientIndex] = true;
-        }
-      } else {
-        // No free slots - reject the connection
-        WebsocketsClient rejectedClient = wsServer.accept();
-        if (rejectedClient.available()) {
+        } else {
           info("WebSocket connection rejected - max clients reached (", MAX_WS_CLIENTS, ")");
-          rejectedClient.send("[\"error\", \"Server busy - max connections reached\"]");
-          // Don't close immediately - let client receive the message first
-          // Client will stop reconnecting after receiving the error
-          delay(100);  // Small delay to allow message to be sent
-          rejectedClient.close();
+          newClient.close();
         }
-      }
-    }
-
-    // Poll all connected clients for messages
-    for (uint8_t i = 0; i < MAX_WS_CLIENTS; i++) {
-      if (wsClientConnected[i]) {
-        wsClients[i].poll();
       }
     }
   }
@@ -2387,6 +2427,7 @@ public:
     router_port = _port;
 
     routerClient = new EthernetClient();
+    routerClient->setConnectionTimeout(1000);  // 1 second max blocking
     if(routerClient->connect(_ip, _port)) {
       info("Connected to router (", currentProtocol->getName(), ")!");
       isConnectedToRouter = true;
@@ -2447,6 +2488,7 @@ public:
       case CONN_CONNECTING:
         // Attempt connection
         routerClient = new EthernetClient();
+        routerClient->setConnectionTimeout(1000);  // 1 second max blocking
         if(routerClient->connect(router_ip, router_port)) {
           info("Connected to router (", currentProtocol->getName(), ")!");
           isConnectedToRouter = true;
@@ -2694,6 +2736,8 @@ public:
     // Send settings to newly connected clients (deferred from callback)
     for (uint8_t i = 0; i < MAX_WS_CLIENTS; i++) {
       if (needToSendSettings[i] && wsClientConnected[i]) {
+        // Wait 100ms after connection before sending to let socket stabilise
+        if (millis() - wsClientConnectTime[i] < 100) continue;
         needToSendSettings[i] = false;
         info("Sending settings to client ", i, "...");
 

@@ -140,17 +140,25 @@ void setup() {
 
 
 void loop() {
+  // Process network stack
+  Ethernet.loop();
+
   //resetButton.poll();
   pollButtons();
 
-  // Poll web server and WebSocket
+  // Poll web server
   Network.pollWebServer();
-  Network.pollWebSocket();
 
   // Skip router polling during OTA to prevent blocking WebSocket
   if (!OTA.updateInProgress) {
     Network.pollRouter();
   }
+
+  // Process network stack again after router poll (which can block)
+  Ethernet.loop();
+
+  // Poll WebSocket after router to ensure handshake responses are flushed
+  Network.pollWebSocket();
   Network.pollWebSocketKeepalive();
 
   // Check for pending OTA flash operation
