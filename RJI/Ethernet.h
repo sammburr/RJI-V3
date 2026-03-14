@@ -50,9 +50,12 @@ const char webpageA[] PROGMEM =R"rawLiteral(
     var fwUpdateInProgress = false;  // Global flag for firmware update
 
     function connectWebSocket() {
-        socket = new WebSocket("ws://" + window.location.hostname + ":8080");
+        var wsUrl = "ws://" + window.location.hostname + ":8080";
+        console.log("[WS] Connecting to", wsUrl);
+        socket = new WebSocket(wsUrl);
 
         socket.addEventListener('open', function() {
+            console.log("[WS] Connected");
             reconnectAttempts = 0;
             lastMessageDate = new Date();  // Reset on connect to prevent immediate timeout
             updateStatusBar();
@@ -60,12 +63,14 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
         socket.addEventListener('message', webSocketMessage);
 
-        socket.addEventListener('close', function() {
+        socket.addEventListener('close', function(e) {
+            console.warn("[WS] Closed (code:" + e.code + " reason:" + (e.reason || "none") + ")");
             setConnectionStatus(false);
             attemptReconnect();
         });
 
-        socket.addEventListener('error', function() {
+        socket.addEventListener('error', function(e) {
+            console.error("[WS] Error", e);
             setConnectionStatus(false);
         });
     }
@@ -74,8 +79,11 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         if(reconnectAttempts < maxReconnectAttempts) {
             reconnectAttempts++;
             var delay = Math.min(1000 * Math.pow(2, reconnectAttempts - 1), 30000);
+            console.log("[WS] Reconnecting in " + delay + "ms (attempt " + reconnectAttempts + "/" + maxReconnectAttempts + ")");
             updateStatusBar();
             setTimeout(connectWebSocket, delay);
+        } else {
+            console.error("[WS] Max reconnect attempts reached, giving up");
         }
     }
 
@@ -93,36 +101,50 @@ const char webpageA[] PROGMEM =R"rawLiteral(
                 case "conn-stat":
                     setConnectionStatus(json[1]);
                     break;
+                case "version":
+                    console.log("[WS] Firmware version:", json[1]);
+                    var vEl = document.getElementById('fw-version');
+                    var vfEl = document.getElementById('fw-version-footer');
+                    if(vEl) vEl.textContent = 'v' + json[1];
+                    if(vfEl) vfEl.textContent = 'v' + json[1];
+                    break;
                 case "vh-stat":
                 case "router-stat":
+                    console.log("[WS] Router status:", json[1] ? "connected" : "disconnected");
                     isRouterConnected = json[1];
                     setRouterConnectionStatus(json[1]);
                     break;
                 case "settings":
+                    console.log("[WS] Received settings");
                     readSettings(json);
                     break;
                 case "gpi":
+                    console.log("[WS] GPI:", json[1], json[2] ? "DOWN" : "UP");
                     setGPI(json[1], json[2]);
                     break;
                 case "rts":
+                    console.log("[WS] Route update: dest", json[1], "-> src", json[2]);
                     updateRTS(json[1], json[2]);
                     break;
                 case "fw-progress":
                 case "fw-error":
                 case "fw-ready":
                 case "fw-flashing":
+                    console.log("[WS] Firmware:", json[0], json[1] || "");
                     handleFirmwareMessage(json);
                     break;
                 case "error":
-                    // Server sent an error message (e.g., max connections reached)
+                    console.error("[WS] Server error:", json[1]);
                     alert("Server: " + json[1]);
                     reconnectAttempts = maxReconnectAttempts; // Stop reconnection attempts
                     break;
+                default:
+                    console.warn("[WS] Unknown message type:", json[0]);
             }
             lastMessageDate = new Date();
             updateStatusBar();
         } catch(e) {
-            console.error("Error parsing message:", e);
+            console.error("[WS] Error parsing message:", e, _event.data);
         }
     }
 
@@ -133,7 +155,9 @@ const char webpageA[] PROGMEM =R"rawLiteral(
             return;
         }
         const currDate = new Date();
-        if(lastMessageDate && currDate - lastMessageDate > 3000) {
+        var elapsed = currDate - lastMessageDate;
+        if(lastMessageDate && elapsed > 3000) {
+            console.warn("[WS] No message for " + Math.round(elapsed/1000) + "s, closing connection");
             if(socket && socket.readyState === WebSocket.OPEN) {
                 socket.close();
             }
@@ -167,7 +191,12 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         if(_val) {
             overlay2.classList.remove("active");
         } else {
-            overlay2.classList.add("active");
+            // Don't show overlay on Network/Firmware tabs - user needs access to configure
+            var activeTab = document.querySelector('.tablinks.active');
+            var tabId = activeTab ? activeTab.textContent : '';
+            if(tabId !== 'Network' && tabId !== 'Firmware') {
+                overlay2.classList.add("active");
+            }
             setRouterConnectionStatus(_val);
         }
         updateStatusBar();
@@ -528,19 +557,20 @@ const char webpageA[] PROGMEM =R"rawLiteral(
     }
 
     function sendConnectToRouter() {
-
+        console.log("[WS] Sending router retry");
         socket.send("[\"router_retry\", " + false + "]");
-
     }
 
 	function sendReset() {
 	    if(confirm("Are you sure you want to reboot the interface?")) {
+	        console.log("[WS] Sending reboot command");
 	        socket.send("[\"reset\"]");
 	    }
 	}
 
 
     function submitSettings() {
+        console.log("[Settings] Saving settings...");
         // Show saving feedback
         var submitBtn = document.getElementById("submit-button");
         var originalText = submitBtn.innerHTML;
@@ -684,6 +714,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
             var submitBtn = document.getElementById("submit-button");
             submitBtn.innerHTML = "Saved!";
             submitBtn.disabled = false;
+            console.log("[Settings] Settings saved");
             setTimeout(function() {
                 submitBtn.innerHTML = "Submit";
             }, 1500);
@@ -750,6 +781,13 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         }
         document.getElementById(tabid).style.display = "block";
         evt.currentTarget.className += " active";
+
+        // Hide/show overlay2 based on tab - Network and Firmware should always be accessible
+        if(tabid === 'Tokyo' || tabid === 'Firmware') {
+            overlay2.classList.remove("active");
+        } else if(socket && socket.readyState !== WebSocket.OPEN) {
+            overlay2.classList.add("active");
+        }
     }
 
     
@@ -1963,7 +2001,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
     <div id="Firmware" class="tabcontent">
         <div class="fw-section">
             <h3>Firmware Update</h3>
-            <p style="font-size:12px;opacity:0.7;">Current version: v3.4.1</p>
+            <p style="font-size:12px;opacity:0.7;">Current version: <span id="fw-version">--</span></p>
 
             <input type="file" id="hexFileInput" accept=".hex" style="display:none" onchange="handleFirmwareFile(this)">
 
@@ -2010,7 +2048,7 @@ const char webpageA[] PROGMEM =R"rawLiteral(
     </div>
     <footer style="position:fixed;bottom:0px;left:0;right:0;padding:12px 12px;">
       <a href="https://videowalrus.com" style="color: var(--dark-blue-accent);">www.videowalrus.com</a>
-      <span style="margin-left:20px;color:var(--type-col);opacity:0.6;">v3.4.1</span>
+      <span id="fw-version-footer" style="margin-left:20px;color:var(--type-col);opacity:0.6;">--</span>
     </footer>
 
 
@@ -2659,7 +2697,10 @@ public:
         needToSendSettings[i] = false;
         info("Sending settings to client ", i, "...");
 
-        // Send conn-stat first
+        // Send version and conn-stat first
+        char versionMsg[64];
+        snprintf(versionMsg, sizeof(versionMsg), "[\"version\", \"%s\"]", FW_VERSION);
+        sendMessageToClient(i, versionMsg);
         sendMessageToClient(i, "[\"conn-stat\", true]");
 
         // Send current settings
@@ -2710,16 +2751,12 @@ public:
       byte dest[1];
       Settings.read(dest, 1, Var_Eng_0 + 2 + ((int)i * 14));
 
-      if(*dest > 0) {
-        // dest is 1-indexed in settings, routingPairs uses 0-indexed
-        uint16_t dest0 = *dest - 1;
-        uint16_t source = currentProtocol->routingPairs[dest0];
+      // dest is already 0-indexed in EEPROM (client subtracts 1 before saving)
+      uint16_t source = currentProtocol->routingPairs[*dest];
 
-        // Only send if we have a valid source (non-zero or explicitly set)
-        char rtsMsg[64];
-        snprintf(rtsMsg, sizeof(rtsMsg), "[\"rts\", %d, %d]", dest0, source);
-        sendMessage(rtsMsg);
-      }
+      char rtsMsg[64];
+      snprintf(rtsMsg, sizeof(rtsMsg), "[\"rts\", %d, %d]", *dest, source);
+      sendMessage(rtsMsg);
     }
   }
 
@@ -2731,16 +2768,12 @@ public:
       byte dest[1];
       Settings.read(dest, 1, Var_Eng_0 + 2 + ((int)i * 14));
 
-      if(*dest > 0) {
-        // dest is 1-indexed in settings, routingPairs uses 0-indexed
-        uint16_t dest0 = *dest - 1;
-        uint16_t source = currentProtocol->routingPairs[dest0];
+      // dest is already 0-indexed in EEPROM (client subtracts 1 before saving)
+      uint16_t source = currentProtocol->routingPairs[*dest];
 
-        // Only send if we have a valid source (non-zero or explicitly set)
-        char rtsMsg[64];
-        snprintf(rtsMsg, sizeof(rtsMsg), "[\"rts\", %d, %d]", dest0, source);
-        sendMessageToClient(clientIndex, rtsMsg);
-      }
+      char rtsMsg[64];
+      snprintf(rtsMsg, sizeof(rtsMsg), "[\"rts\", %d, %d]", *dest, source);
+      sendMessageToClient(clientIndex, rtsMsg);
     }
   }
 

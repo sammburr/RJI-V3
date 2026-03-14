@@ -1,4 +1,4 @@
-//BlackMagic-New version 29-may-25
+#define FW_VERSION "3.4.2"
 
 #include <ArduinoJson.h>
 #include <string.h>
@@ -26,7 +26,8 @@ void setup() {
   DebugLight.red();
   Debug.startSerial();
 
-  Debug.printTitle("TEENSY SETUP");
+  Debug.printTitle("Video Walrus Router Joystick Interface");
+  info("RJI Firmware v", FW_VERSION);
 
   Settings.printSettings();
 
