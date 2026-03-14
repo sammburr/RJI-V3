@@ -125,9 +125,6 @@ const char webpageA[] PROGMEM =R"rawLiteral(
         connectWebSocket();
     });
 
-    // Note: Don't close WebSocket in beforeunload - it creates a stale TCP
-    // connection that interferes with the new page's connection attempt
-
     function webSocketMessage(_event){
         try {
             const json = JSON.parse(_event.data);
