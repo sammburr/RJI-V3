@@ -1115,13 +1115,14 @@ const char webpageA[] PROGMEM =R"rawLiteral(
 
             console.log('Start confirmed, sending ' + lines.length + ' lines...');
 
-            // Additional delay before sending data
-            await new Promise(function(r) { setTimeout(r, 200); });
+            // Send hex lines with pacing to avoid overwhelming the device
+            // Each line is ~45 bytes as JSON, device WS buffer is 512 bytes
+            // Send in small bursts with brief pauses for device to process
+            var burstSize = 5;     // Lines per burst
+            var burstDelay = 5;    // ms between bursts
+            var uiInterval = 100;  // Update progress UI every N lines
 
-            // Send lines one at a time with delay to prevent overwhelming device
-            // Flash erase takes ~30-100ms per sector, so we need to pace the upload
             for(var i = 0; i < lines.length; i++) {
-                // Check socket is still open
                 if(socket.readyState !== WebSocket.OPEN) {
                     throw new Error('WebSocket disconnected during upload');
                 }
@@ -1129,23 +1130,22 @@ const char webpageA[] PROGMEM =R"rawLiteral(
                 socket.send(JSON.stringify(["fw-data", lines[i].trim()]));
                 fwSentLines++;
 
-                // Update progress every 50 lines
-                if(i % 50 === 0 || i === lines.length - 1) {
+                // Update progress periodically
+                if(i % uiInterval === 0 || i === lines.length - 1) {
                     var pct = Math.round((fwSentLines / fwTotalLines) * 100);
                     document.getElementById('fw-progress-bar').style.width = pct + '%';
                     document.getElementById('fw-progress-text').textContent = pct + '%';
                     document.getElementById('fw-status').textContent = 'Uploading... ' + fwSentLines + '/' + fwTotalLines + ' lines';
                 }
 
-                // Delay to let device process and maintain network
-                // This is critical - without it, the device gets overwhelmed
-                if(i % 10 === 0) {
-                    await new Promise(function(r) { setTimeout(r, 50); });
+                // Pause after each burst to let device process
+                if(i % burstSize === 0 && i > 0) {
+                    await new Promise(function(r) { setTimeout(r, burstDelay); });
                 }
             }
 
-            // Wait a bit before sending end
-            await new Promise(function(r) { setTimeout(r, 500); });
+            // Allow final data to be processed
+            await new Promise(function(r) { setTimeout(r, 200); });
 
             // Finish the update
             document.getElementById('fw-status').textContent = 'Verifying firmware...';
